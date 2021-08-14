@@ -3,6 +3,12 @@ package libsagernet
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+	"sync"
+
 	core "github.com/v2fly/v2ray-core/v4"
 	appLog "github.com/v2fly/v2ray-core/v4/app/log"
 	commonLog "github.com/v2fly/v2ray-core/v4/common/log"
@@ -10,11 +16,6 @@ import (
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
-	"io"
-	"log"
-	"os"
-	"strings"
-	"sync"
 )
 
 func GetV2RayVersion() string {
@@ -66,7 +67,8 @@ func init() {
 }
 
 type V2RayInstance struct {
-	access       sync.Mutex
+	sync.Mutex
+
 	started      bool
 	core         *core.Instance
 	statsManager stats.Manager
@@ -77,8 +79,9 @@ func NewV2rayInstance() V2RayInstance {
 }
 
 func (instance *V2RayInstance) LoadConfig(content string) error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
 		return err
@@ -93,8 +96,9 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 }
 
 func (instance *V2RayInstance) Start() error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	if instance.started {
 		return errors.New("already started")
 	}
@@ -121,8 +125,9 @@ func (instance *V2RayInstance) QueryStats(tag string, direct string) int64 {
 }
 
 func (instance *V2RayInstance) Close() error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	if instance.started {
 		return instance.core.Close()
 	}

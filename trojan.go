@@ -2,9 +2,10 @@ package libsagernet
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/p4gefau1t/trojan-go/proxy"
 	_ "github.com/p4gefau1t/trojan-go/proxy/client"
-	"sync"
 )
 
 func GetTrojanVersion() string {
@@ -12,8 +13,9 @@ func GetTrojanVersion() string {
 }
 
 type TrojanInstance struct {
+	sync.Mutex
+
 	core    *proxy.Proxy
-	access  sync.Mutex
 	started bool
 }
 
@@ -22,8 +24,9 @@ func NewTrojanInstance() TrojanInstance {
 }
 
 func (instance *TrojanInstance) LoadConfig(content string, isJSON bool) error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	core, err := proxy.NewProxyFromConfigData([]byte(content), isJSON)
 	if err != nil {
 		return err
@@ -33,8 +36,9 @@ func (instance *TrojanInstance) LoadConfig(content string, isJSON bool) error {
 }
 
 func (instance *TrojanInstance) Start() error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	if instance.started {
 		return errors.New("already started")
 	}
@@ -45,8 +49,9 @@ func (instance *TrojanInstance) Start() error {
 }
 
 func (instance *TrojanInstance) Close() error {
-	instance.access.Lock()
-	defer instance.access.Unlock()
+	instance.Lock()
+	defer instance.Unlock()
+
 	if instance.started {
 		return instance.core.Close()
 	}
