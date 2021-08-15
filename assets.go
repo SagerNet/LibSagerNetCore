@@ -1,10 +1,11 @@
 package libsagernet
 
 import (
-	"github.com/ulikunitz/xz"
-	"golang.org/x/mobile/asset"
 	"io"
 	"os"
+
+	"github.com/ulikunitz/xz"
+	"golang.org/x/mobile/asset"
 )
 
 type splitReader struct {
