@@ -101,19 +101,27 @@ func (asset *xzReader) Close() error {
 }
 
 func openAssets(assetsPrefix string, path string, memReader bool) (io.ReadSeekCloser, error) {
+	_, fileName := filepath.Split(path)
+	path = geoAssetsPath + fileName
+
 	_, notExistsInFileSystemError := os.Stat(path)
 	if notExistsInFileSystemError == nil {
+		log.Printf("load geo asset %s", path)
 		return os.Open(path)
 	}
 	if !os.IsNotExist(notExistsInFileSystemError) {
 		return nil, notExistsInFileSystemError
 	}
-	_, notExistsInFileSystemError = os.Stat(path + ".xz")
+	log.Printf("%s not found", path)
+
+	xzPath := path + ".xz"
+	_, notExistsInFileSystemError = os.Stat(xzPath)
 	if notExistsInFileSystemError == nil {
-		file, err := os.Open(path + ".xz")
+		file, err := os.Open(xzPath)
 		if err != nil {
 			return nil, err
 		}
+		log.Printf("load geo asset %s", xzPath)
 		if memReader {
 			return newMemReader(file)
 		} else {
@@ -124,18 +132,20 @@ func openAssets(assetsPrefix string, path string, memReader bool) (io.ReadSeekCl
 		return nil, notExistsInFileSystemError
 	}
 
-	_, fileName := filepath.Split(path)
+	path = assetsPrefix + fileName
 
-	assetFile, err := asset.Open(assetsPrefix + fileName)
+	assetFile, err := asset.Open(path)
 	if err == nil {
+		log.Printf("load geo asset %s", path)
 		return assetFile, nil
 	}
 
-	assetFile, err = asset.Open(assetsPrefix + fileName + ".xz")
+	path += ".xz"
+	assetFile, err = asset.Open(path)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Printf("load geo asset %s", path)
 	if memReader {
 		return newMemReader(assetFile)
 	} else {

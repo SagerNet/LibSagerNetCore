@@ -23,13 +23,11 @@ func GetV2RayVersion() string {
 	return core.Version()
 }
 
+var geoAssetsPath string
+
 func InitializeV2Ray(assetsPath string, assetsPrefix string, memReader bool) error {
 
-	const envName = "core.location.asset"
-	err := os.Setenv(envName, assetsPath)
-	if err != nil {
-		return err
-	}
+	geoAssetsPath = assetsPath
 
 	filesystem.NewFileReader = func(path string) (io.ReadCloser, error) {
 		return openAssets(assetsPrefix, path, memReader)
