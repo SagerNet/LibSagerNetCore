@@ -3,6 +3,7 @@ package libsagernet
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/ulikunitz/xz"
 	"golang.org/x/mobile/asset"
@@ -52,12 +53,14 @@ func openAssets(assetsPrefix string, path string) (io.ReadSeekCloser, error) {
 		return nil, notExistsInFileSystemError
 	}
 
-	assetFile, err := asset.Open(assetsPrefix + path)
+	_, fileName := filepath.Split(path)
+
+	assetFile, err := asset.Open(assetsPrefix + fileName)
 	if err == nil {
 		return assetFile, nil
 	}
 
-	assetFile, err = asset.Open(assetsPrefix + path + ".xz")
+	assetFile, err = asset.Open(assetsPrefix + fileName + ".xz")
 	if err != nil {
 		return nil, err
 	}
