@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -22,7 +23,7 @@ func GetV2RayVersion() string {
 	return core.Version()
 }
 
-func InitializeV2Ray(assetsPath string, assetsPrefix string) error {
+func InitializeV2Ray(assetsPath string, assetsPrefix string, memReader bool) error {
 
 	const envName = "core.location.asset"
 	err := os.Setenv(envName, assetsPath)
@@ -31,10 +32,10 @@ func InitializeV2Ray(assetsPath string, assetsPrefix string) error {
 	}
 
 	filesystem.NewFileReader = func(path string) (io.ReadCloser, error) {
-		return openAssets(assetsPrefix, path)
+		return openAssets(assetsPrefix, path, memReader)
 	}
 	filesystem.NewFileSeeker = func(path string) (io.ReadSeekCloser, error) {
-		return openAssets(assetsPrefix, path)
+		return openAssets(assetsPrefix, path, memReader)
 	}
 
 	return nil
@@ -83,6 +84,7 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 	defer instance.Unlock()
 
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
+	runtime.GC()
 	if err != nil {
 		return err
 	}
