@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SagerNet/go-tun2socks/log"
-	"github.com/sirupsen/logrus"
 	"github.com/xjasonlyu/tun2socks/component/dialer"
 	"github.com/xjasonlyu/tun2socks/constant"
 	"github.com/xjasonlyu/tun2socks/core"
@@ -42,10 +41,8 @@ func NewTun2socksG(fd int, mtu int, socksPort int, router string, dnsPort int, h
 	}
 	gvisorStack, err := stack.New(tunDevice, &fakeTunnel{}, stack.WithDefault())
 	if debug {
-		logrus.SetLevel(logrus.DebugLevel)
 		log.SetLevel(log.DEBUG)
 	} else {
-		logrus.SetLevel(logrus.WarnLevel)
 		log.SetLevel(log.WARN)
 	}
 
