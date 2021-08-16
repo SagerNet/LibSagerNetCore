@@ -21,6 +21,10 @@ type ShadowsocksInstance struct {
 }
 
 func NewShadowsocksInstance(socksPort int, server string, port int, password string, cipher string, plugin string, pluginOpts string) (*ShadowsocksInstance, error) {
+	if plugin == "obfs-local" || plugin == "simple-obfs" {
+		plugin = "obfs"
+	}
+
 	ctx := make(chan constant.ConnContext, 100)
 	i, err := socks.New(fmt.Sprintf("127.0.0.1:%d", socksPort), ctx)
 	if err != nil {
