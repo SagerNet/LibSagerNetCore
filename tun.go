@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/eycorsican/go-tun2socks/common/log"
+	"github.com/eycorsican/go-tun2socks/common/log/simple"
 	"github.com/eycorsican/go-tun2socks/core"
 	"github.com/eycorsican/go-tun2socks/proxy/redirect"
 	"github.com/eycorsican/go-tun2socks/proxy/socks"
@@ -13,6 +14,10 @@ import (
 	"sync"
 	"time"
 )
+
+func init() {
+	log.RegisterLogger(simple.NewSimpleLogger())
+}
 
 type Tun2socks struct {
 	access          sync.Mutex
@@ -27,9 +32,10 @@ type Tun2socks struct {
 	dnsUdpHandler   core.UDPConnHandler
 	lwip            core.LWIPStack
 	running         bool
+	debug           bool
 }
 
-func NewTun2socks(fd int, mtu int, socksPort int, router string, dnsPort int, hijackDns bool) (*Tun2socks, error) {
+func NewTun2socks(fd int, mtu int, socksPort int, router string, dnsPort int, hijackDns bool, debug bool) (*Tun2socks, error) {
 	if fd < 0 {
 		return nil, errors.New("must provide a valid TUN file descriptor")
 	}
@@ -44,6 +50,7 @@ func NewTun2socks(fd int, mtu int, socksPort int, router string, dnsPort int, hi
 	}
 
 	dns := fmt.Sprintf("127.0.0.1:%d", dnsPort)
+	log.Infof("dns: %s", dns)
 	return &Tun2socks{
 		tun:             file,
 		mtu:             mtu,
@@ -54,7 +61,8 @@ func NewTun2socks(fd int, mtu int, socksPort int, router string, dnsPort int, hi
 		socksTcpHandler: socks.NewTCPHandler("127.0.0.1", uint16(socksPort)),
 		dnsTcpHandler:   redirect.NewTCPHandler(dns),
 		socksUdpHandler: socks.NewUDPHandler("127.0.0.1", uint16(socksPort), 5*time.Minute),
-		dnsUdpHandler:   redirect.NewUDPHandler(dns, 1*time.Second),
+		dnsUdpHandler:   redirect.NewUDPHandler(dns, 1*time.Minute),
+		debug:           debug,
 	}, nil
 }
 
@@ -69,6 +77,14 @@ func (t *Tun2socks) Start() error {
 	core.RegisterOutputFn(t.tun.Write)
 	core.RegisterTCPConnHandler(t)
 	core.RegisterUDPConnHandler(t)
+
+	var logLevel log.LogLevel
+	if t.debug {
+		logLevel = log.DEBUG
+	} else {
+		logLevel = log.WARN
+	}
+	log.SetLevel(logLevel)
 
 	t.running = true
 	go t.processPackets()
