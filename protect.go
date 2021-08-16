@@ -1,4 +1,4 @@
-package libsagernet
+package libcore
 
 import (
 	"context"
@@ -16,18 +16,18 @@ type Protector interface {
 }
 
 func SetProtector(protector Protector) {
-	internet.UseAlternativeSystemDialer(ProtectedDialer{
+	internet.UseAlternativeSystemDialer(protectedDialer{
 		protector: protector,
 		resolver:  &net.Resolver{PreferGo: false},
 	})
 }
 
-type ProtectedDialer struct {
+type protectedDialer struct {
 	protector Protector
 	resolver  *net.Resolver
 }
 
-func (dialer ProtectedDialer) Dial(ctx context.Context, source net.Address, destination net.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
+func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, destination net.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

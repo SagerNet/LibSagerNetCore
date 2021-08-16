@@ -1,4 +1,4 @@
-package libsagernet
+package libcore
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -66,8 +65,7 @@ func init() {
 }
 
 type V2RayInstance struct {
-	sync.Mutex
-
+	access       sync.Mutex
 	started      bool
 	core         *core.Instance
 	statsManager stats.Manager
@@ -78,11 +76,9 @@ func NewV2rayInstance() V2RayInstance {
 }
 
 func (instance *V2RayInstance) LoadConfig(content string) error {
-	instance.Lock()
-	defer instance.Unlock()
-
+	instance.access.Lock()
+	defer instance.access.Unlock()
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
-	runtime.GC()
 	if err != nil {
 		return err
 	}
@@ -96,9 +92,8 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 }
 
 func (instance *V2RayInstance) Start() error {
-	instance.Lock()
-	defer instance.Unlock()
-
+	instance.access.Lock()
+	defer instance.access.Unlock()
 	if instance.started {
 		return errors.New("already started")
 	}
@@ -125,9 +120,8 @@ func (instance *V2RayInstance) QueryStats(tag string, direct string) int64 {
 }
 
 func (instance *V2RayInstance) Close() error {
-	instance.Lock()
-	defer instance.Unlock()
-
+	instance.access.Lock()
+	defer instance.access.Unlock()
 	if instance.started {
 		return instance.core.Close()
 	}

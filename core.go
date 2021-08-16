@@ -1,4 +1,4 @@
-package libsagernet
+package libcore
 
 import (
 	"os"
