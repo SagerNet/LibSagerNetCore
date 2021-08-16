@@ -50,7 +50,6 @@ func NewTun2socks(fd int, mtu int, socksPort int, router string, dnsPort int, hi
 	}
 
 	dns := fmt.Sprintf("127.0.0.1:%d", dnsPort)
-	log.Infof("dns: %s", dns)
 	return &Tun2socks{
 		tun:             file,
 		mtu:             mtu,
