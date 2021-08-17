@@ -4,18 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SagerNet/go-tun2socks/log"
 	"github.com/xjasonlyu/tun2socks/component/dialer"
 	"github.com/xjasonlyu/tun2socks/constant"
 	"github.com/xjasonlyu/tun2socks/core"
 	"github.com/xjasonlyu/tun2socks/core/device/rwbased"
 	"github.com/xjasonlyu/tun2socks/core/stack"
+	"github.com/xjasonlyu/tun2socks/log"
 	"github.com/xjasonlyu/tun2socks/proxy"
 	"github.com/xjasonlyu/tun2socks/tunnel"
 	"net"
 	"os"
 	"sync"
-	"time"
 )
 
 type Tun2socksG struct {
@@ -29,6 +28,15 @@ type Tun2socksG struct {
 	hijackDns bool
 }
 
+type proxyTunnel struct{}
+
+func (*proxyTunnel) Add(conn core.TCPConn) {
+	tunnel.Add(conn)
+}
+func (*proxyTunnel) AddPacket(packet core.UDPPacket) {
+	tunnel.AddPacket(packet)
+}
+
 func NewTun2socksG(fd int, mtu int, socksPort int, router string, dnsPort int, hijackDns bool, debug bool) (*Tun2socksG, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
@@ -39,11 +47,11 @@ func NewTun2socksG(fd int, mtu int, socksPort int, router string, dnsPort int, h
 	if err != nil {
 		return nil, err
 	}
-	gvisorStack, err := stack.New(tunDevice, &fakeTunnel{}, stack.WithDefault())
+	gvisorStack, err := stack.New(tunDevice, &proxyTunnel{}, stack.WithDefault())
 	if debug {
-		log.SetLevel(log.DEBUG)
+		log.SetLevel(log.DebugLevel)
 	} else {
-		log.SetLevel(log.WARN)
+		log.SetLevel(log.WarnLevel)
 	}
 
 	socks5Proxy, err := proxy.NewSocks5(fmt.Sprintf("127.0.0.1:%d", socksPort), "", "")
@@ -51,8 +59,8 @@ func NewTun2socksG(fd int, mtu int, socksPort int, router string, dnsPort int, h
 		return nil, err
 	}
 
-	dns := fmt.Sprintf("127.0.0.1:%d", dnsPort)
-	dnsAddr, err := net.ResolveUDPAddr("udp", dns)
+	dnsAddrStr := fmt.Sprintf("127.0.0.1:%d", dnsPort)
+	dnsAddr, err := net.ResolveUDPAddr("udp", dnsAddrStr)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +72,7 @@ func NewTun2socksG(fd int, mtu int, socksPort int, router string, dnsPort int, h
 		device:    tunDevice,
 		proxy:     socks5Proxy,
 		router:    router,
-		dns:       dns,
+		dns:       dnsAddrStr,
 		dnsAddr:   dnsAddr,
 		hijackDns: hijackDns,
 	}, nil
@@ -92,57 +100,17 @@ func (t *Tun2socksG) DialContext(ctx context.Context, metadata *constant.Metadat
 }
 
 func (t *Tun2socksG) DialUDP(metadata *constant.Metadata) (net.PacketConn, error) {
-	if metadata.DstIP.String() == t.router || metadata.DstPort == 53 && t.hijackDns {
-		pc, err := dialer.ListenPacket("udp", "")
-		if err != nil {
-			return nil, err
-		}
-		return &dnsPacketConn{conn: pc, addr: t.dnsAddr, target: metadata.UDPAddr()}, nil
+	if metadata.DstIP.String() == t.router || t.hijackDns {
+		return t.newDnsPacketConn(metadata)
+	} else {
+		return t.proxy.DialUDP(metadata)
 	}
-	return t.proxy.DialUDP(metadata)
 }
 
-type fakeTunnel struct{}
-
-func (*fakeTunnel) Add(conn core.TCPConn) {
-	tunnel.Add(conn)
-}
-func (*fakeTunnel) AddPacket(packet core.UDPPacket) {
-	tunnel.AddPacket(packet)
-}
-
-type dnsPacketConn struct {
-	conn   net.PacketConn
-	addr   *net.UDPAddr
-	target net.Addr
-}
-
-func (pc *dnsPacketConn) WriteTo(b []byte, addr net.Addr) (int, error) {
-	pc.target = addr
-	return pc.conn.WriteTo(b, pc.addr)
-}
-
-func (pc *dnsPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, _, err = pc.conn.ReadFrom(p)
-	return n, pc.target, err
-}
-
-func (pc *dnsPacketConn) Close() error {
-	return pc.conn.Close()
-}
-
-func (pc *dnsPacketConn) LocalAddr() net.Addr {
-	return pc.conn.LocalAddr()
-}
-
-func (pc *dnsPacketConn) SetDeadline(t time.Time) error {
-	return pc.conn.SetDeadline(t)
-}
-
-func (pc *dnsPacketConn) SetReadDeadline(t time.Time) error {
-	return pc.conn.SetReadDeadline(t)
-}
-
-func (pc *dnsPacketConn) SetWriteDeadline(t time.Time) error {
-	return pc.conn.SetWriteDeadline(t)
+func (t *Tun2socksG) newDnsPacketConn(metadata *constant.Metadata) (conn net.PacketConn, err error) {
+	conn, err = dialer.ListenPacket("udp", "")
+	if err == nil {
+		conn = &dnsPacketConn{conn: conn, dnsAddr: t.dnsAddr, realAddr: metadata.UDPAddr()}
+	}
+	return
 }
