@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/Dreamacro/clash v1.6.5
-	github.com/SagerNet/go-tun2socks v1.16.12-0.20210816074233-858165b3aa3a
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v4 v4.41.1
 	github.com/miekg/dns v1.1.43
