@@ -34,6 +34,7 @@ func NewShadowsocksRInstance(socksPort int, server string, port int, password st
 		ObfsParam:     obfsParam,
 		Protocol:      protocol,
 		ProtocolParam: protocolParam,
+		UDP:           true,
 	})
 	if err != nil {
 		return nil, err

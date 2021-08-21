@@ -73,7 +73,7 @@ func (i *ApiInstance) loop() {
 		query, err := api.ParseQuery(buffer[:length])
 		if err != nil {
 			if err != nil && strings.Contains(err.Error(), "upgrade") {
-				message, err := api.MakeResponse(api.Response{Version: api.Version, DeviceName: "", SocksPort: 0, DnsPort: 0, Debug: false, BypassLan: false})
+				message, err := api.MakeResponse(&api.Response{Version: api.Version, DeviceName: "", SocksPort: 0, DnsPort: 0, Debug: false, BypassLan: false})
 				if err != nil {
 					log.Warnf("api: make response error: %v", err)
 					continue
@@ -93,7 +93,7 @@ func (i *ApiInstance) loop() {
 		log.Infof("api: new query from %s (%s)", query.DeviceName, addr.String())
 
 		response := api.Response{Version: api.Version, DeviceName: i.deviceName, SocksPort: uint16(i.socksPort), DnsPort: uint16(i.dnsPort), Debug: i.debug, BypassLan: i.bypassLan}
-		message, err := api.MakeResponse(response)
+		message, err := api.MakeResponse(&response)
 		if err != nil {
 			log.Warnf("api: make response error: %v", err)
 			continue
