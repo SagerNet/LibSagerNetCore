@@ -625,6 +625,8 @@ github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
+github.com/sagernet/gomobile v0.0.0-20210822074701-68a55075c7d2 h1:vQui2YjhUHRQuMnqYLcMib2hYPUHqA6jOj625YRSM1A=
+github.com/sagernet/gomobile v0.0.0-20210822074701-68a55075c7d2/go.mod h1:2Xj8wyq0y6G6B1gCNTzRcKqo+cyVKatMTNWUmxNYfI4=
 github.com/sagernet/libping v0.1.0 h1:vQF5Y8zy5Ym6leavfkvSb51lwleIHVRZGFcYYsBJEWw=
 github.com/sagernet/libping v0.1.0/go.mod h1:seddT2Y4hUO9pNJ8Lw0trX3XHqktLbPlc65JCTKb0JE=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=
@@ -820,8 +822,6 @@ golang.org/x/lint v0.0.0-20200302205851-738671d3881b/go.mod h1:3xt1FjdF8hUf6vQPI
 golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5/go.mod h1:3xt1FjdF8hUf6vQPIChWIBhFzV8gjjsPE/fR3IyQdNY=
 golang.org/x/mobile v0.0.0-20190312151609-d3739f865fa6/go.mod h1:z+o9i4GpDbdi3rU15maQ/Ox0txvL9dWGYEHz965HBQE=
 golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028/go.mod h1:E/iHnbuqvinMTCcRqshq8CkpyQDoeVncDDYHnLhea+o=
-golang.org/x/mobile v0.0.0-20210716004757-34ab1303b554 h1:3In5TnfvnuXTF/uflgpYxSCEGP2NdYT37KsPh3VjZYU=
-golang.org/x/mobile v0.0.0-20210716004757-34ab1303b554/go.mod h1:jFTmtFYCV0MFtXBU+J5V/+5AUeVS0ON/0WkE/KSrl6E=
 golang.org/x/mod v0.0.0-20190513183733-4bf6d317e70e/go.mod h1:mXi4GBBbnImb6dmsKGUJ2LatrhH/nqhxcFungHvyanc=
 golang.org/x/mod v0.1.0/go.mod h1:0QHyrYULN0/3qlju5TqG8bIK38QM8yzMo5ekMj3DlcY=
 golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee/go.mod h1:QqPTAvyqsEbceGzBzNggFXnrqF1CaUcvgkdR5Ot7KZg=

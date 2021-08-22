@@ -3,19 +3,14 @@ package libcore
 import (
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"strings"
-	"sync"
-
 	core "github.com/v2fly/v2ray-core/v4"
-	appLog "github.com/v2fly/v2ray-core/v4/app/log"
-	commonLog "github.com/v2fly/v2ray-core/v4/common/log"
 	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
+	"io"
+	"strings"
+	"sync"
 )
 
 func GetV2RayVersion() string {
@@ -38,32 +33,6 @@ func InitializeV2Ray(assetsPath string, assetsPrefix string, memReader bool) err
 	return nil
 }
 
-type stdoutLogWriter struct {
-	logger *log.Logger
-}
-
-func (w *stdoutLogWriter) Write(s string) error {
-	w.logger.Print(s)
-	return nil
-}
-
-func (w *stdoutLogWriter) Close() error {
-	return nil
-}
-
-func init() {
-	_ = appLog.RegisterHandlerCreator(appLog.LogType_Console,
-		func(lt appLog.LogType,
-			options appLog.HandlerCreatorOptions) (commonLog.Handler, error) {
-			logger := log.New(os.Stdout, "", 0)
-			return commonLog.NewLogger(func() commonLog.Writer {
-				return &stdoutLogWriter{
-					logger: logger,
-				}
-			}), nil
-		})
-}
-
 type V2RayInstance struct {
 	access       sync.Mutex
 	started      bool
@@ -71,16 +40,20 @@ type V2RayInstance struct {
 	statsManager stats.Manager
 }
 
-func NewV2rayInstance() V2RayInstance {
-	return V2RayInstance{}
+func NewV2rayInstance() *V2RayInstance {
+	return &V2RayInstance{}
 }
 
-func (instance *V2RayInstance) LoadConfig(content string) error {
+func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	instance.access.Lock()
 	defer instance.access.Unlock()
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
 		return err
+	}
+	if forTest {
+		config.Inbound = nil
+		config.App = config.App[:4]
 	}
 	c, err := core.New(config)
 	if err != nil {

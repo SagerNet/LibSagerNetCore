@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sagernet/gomobile/asset"
 	"github.com/ulikunitz/xz"
-	"golang.org/x/mobile/asset"
 )
 
 type memReader struct {

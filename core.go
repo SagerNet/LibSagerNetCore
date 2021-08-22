@@ -5,6 +5,10 @@ import (
 	"os"
 )
 
+func init() {
+	initLog()
+}
+
 func Setenv(key, value string) error {
 	return os.Setenv(key, value)
 }

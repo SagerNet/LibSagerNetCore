@@ -50,4 +50,6 @@ if [ $(command -v go) ]; then
   export PATH="$PATH:$(go env GOPATH)/bin"
 fi
 
-gomobile bind -v -trimpath -ldflags='-s -w' . || exit 1
+cache=$(realpath build)
+gomobile bind -v -cache $cache -trimpath -ldflags='-s -w' . || exit 1
+rm -r libcore-sources.jar
