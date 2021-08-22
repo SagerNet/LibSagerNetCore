@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	clashResolver "github.com/Dreamacro/clash/component/resolver"
 	v2rayCore "github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
@@ -31,7 +30,6 @@ type Tun2socks struct {
 	hijackDns bool
 	uidRule   map[int]int
 	v2ray     *V2RayInstance
-	resolver  *net.Resolver
 }
 
 var uidDumper UidDumper
@@ -85,24 +83,8 @@ func (t *Tun2socks) Start() {
 	defer t.access.Unlock()
 
 	proxy.SetDialer(t)
-
-	t.resolver = &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			if network == "" {
-				network = "tcp"
-			}
-			dest, err := v2rayNet.ParseDestination(fmt.Sprintf("%s:%s", network, address))
-			if err != nil {
-				return nil, err
-			}
-
-			return v2rayCore.Dial(session.SetForcedOutboundTagToContext(context.Background(), "dns-out"), t.v2ray.core, dest)
-		},
-	}
-
-	clashResolver.DefaultResolver = t
 }
+
 func (t *Tun2socks) Close() {
 	t.access.Lock()
 	defer t.access.Unlock()
@@ -149,7 +131,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 	} else {
 		rule := t.uidRule[uid]
 		if rule != 0 && !isDns {
-			outbound = fmt.Sprint("tun-uid-", uid)
+			outbound = fmt.Sprint("uid-", uid)
 		}
 	}
 
@@ -241,37 +223,4 @@ func (u udpPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 
 func (u udpPacketConn) WriteTo(p []byte, _ net.Addr) (n int, err error) {
 	return u.Write(p)
-}
-
-func (t *Tun2socks) ResolveIP(host string) (ip net.IP, err error) {
-	ips, err := t.resolver.LookupIP(context.Background(), "ip", host)
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, errors.New("NXDOMAIN")
-	}
-	return ips[0], nil
-}
-
-func (t *Tun2socks) ResolveIPv4(host string) (ip net.IP, err error) {
-	ips, err := t.resolver.LookupIP(context.Background(), "ip4", host)
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, errors.New("NXDOMAIN")
-	}
-	return ips[0], nil
-}
-
-func (t *Tun2socks) ResolveIPv6(host string) (ip net.IP, err error) {
-	ips, err := t.resolver.LookupIP(context.Background(), "ip6", host)
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, errors.New("NXDOMAIN")
-	}
-	return ips[0], nil
 }
