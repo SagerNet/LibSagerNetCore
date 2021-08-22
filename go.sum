@@ -732,8 +732,9 @@ github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2
 github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415/go.mod h1:GwrjFmJcFw6At/Gs6z4yjiIwzuJ1/+UwLxMQDVQXShQ=
 github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
-github.com/xjasonlyu/tun2socks v1.18.4-0.20210813034434-85cf694b8fed h1:lPuJtQy7QGTKCCCvrZwjnacf1g1H+ecDK1Ty/nQNfCI=
 github.com/xjasonlyu/tun2socks v1.18.4-0.20210813034434-85cf694b8fed/go.mod h1:Vc6UHI6QkBfaucUhev2AP+jgW9z+nPtxdyK/bWy16WU=
+github.com/xjasonlyu/tun2socks v1.18.4-0.20210821024837-525d424fca52 h1:SIsPciSQ8kPOuKu9eZ26Apv+iHXdu6UDNZoTLjRqyAE=
+github.com/xjasonlyu/tun2socks v1.18.4-0.20210821024837-525d424fca52/go.mod h1:gOQ/2Vdh3WIb2YJB7V3+43Fr476isyohXzHIdV+dvz8=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/xtaci/smux v1.5.15 h1:6hMiXswcleXj5oNfcJc+DXS8Vj36XX2LaX98udog6Kc=
 github.com/xtaci/smux v1.5.15/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
@@ -1238,8 +1239,9 @@ gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81
 gotest.tools/v3 v3.0.2/go.mod h1:3SzNCllyD9/Y+b5r9JIKQ474KzkZyqLqEfYqMsX94Bk=
 gotest.tools/v3 v3.0.3/go.mod h1:Z7Lb0S5l+klDB31fvDQX8ss/FlKDxtlFlw3Oa8Ymbl8=
 grpc.go4.org v0.0.0-20170609214715-11d0a25b4919/go.mod h1:77eQGdRu53HpSqPFJFmuJdjuHRquDANNeA4x7B8WQ9o=
-gvisor.dev/gvisor v0.0.0-20210813013607-83f71d012799 h1:Z4Z+p0B2POxjPNBDzlIs0STd/v0Uv/Rf/tWfHpPIm84=
 gvisor.dev/gvisor v0.0.0-20210813013607-83f71d012799/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
+gvisor.dev/gvisor v0.0.0-20210821010134-571f7889f5f0 h1:ct6SYXnuAch8u9MPDzU5s+sSAWVIXYrwV76nghzFoeY=
+gvisor.dev/gvisor v0.0.0-20210821010134-571f7889f5f0/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
 h12.io/socks v1.0.2/go.mod h1:AIhxy1jOId/XCz9BO+EIgNL2rQiPTBNnOfnVnQ+3Eck=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
