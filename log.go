@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"os"
+	"strings"
 	"syscall"
 	"unsafe"
 
@@ -41,7 +42,8 @@ type androidHook struct {
 type androidFormatter struct{}
 
 func (f *androidFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	msgWithLevel := fmt.Sprint("[", entry.Level.String(), "] ", entry.Message)
+
+	msgWithLevel := fmt.Sprint("[", strings.Title(entry.Level.String()), "] ", entry.Message)
 	return []byte(msgWithLevel), nil
 }
 
