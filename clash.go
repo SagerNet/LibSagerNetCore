@@ -85,14 +85,12 @@ func (s *ClashBasedInstance) loop() {
 				fmt.Printf("Dial error: %s\n", err.Error())
 				return
 			}
-			defer func(remote clashC.Conn) {
-				_ = remote.Close()
-				_ = conn.Conn().Close()
-			}(remote)
 			go func() {
 				_, _ = io.Copy(remote, conn.Conn())
 			}()
 			_, _ = io.Copy(conn.Conn(), remote)
+			_ = remote.Close()
+			_ = conn.Conn().Close()
 		}()
 	}
 }
@@ -186,8 +184,8 @@ func NewShadowsocksRInstance(socksPort int, server string, port int, password st
 
 func NewSnellInstance(socksPort int, server string, port int, psk string, obfsMode string, obfsHost string, version int) (*ClashBasedInstance, error) {
 	obfs := map[string]interface{}{}
-	obfs["Mode"] = obfsMode
-	obfs["Host"] = obfsHost
+	obfs["mode"] = obfsMode
+	obfs["host"] = obfsHost
 	out, err := outbound.NewSnell(outbound.SnellOption{
 		Server:   server,
 		Port:     port,
