@@ -30,8 +30,10 @@ type Tun2socks struct {
 	uidRule   map[int]int
 	v2ray     *V2RayInstance
 	udpTable  *natTable
-	debug     bool
 	dumpUid   bool
+	fakedns   bool
+	sniffing  bool
+	debug     bool
 }
 
 var uidDumper UidDumper
@@ -50,7 +52,7 @@ func SetUidDumper(dumper UidDumper) {
 	uidDumper = dumper
 }
 
-func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDns bool, debug bool, uidRule string) (*Tun2socks, error) {
+func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool, uidRule string) (*Tun2socks, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
@@ -60,6 +62,8 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 		hijackDns: hijackDns,
 		v2ray:     v2ray,
 		udpTable:  &natTable{},
+		sniffing:  sniffing,
+		fakedns:   fakedns,
 		debug:     debug,
 	}
 
@@ -117,10 +121,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		return
 	}
 
-	srcIp := src.Address.IP()
-	dstIp := dest.Address.IP()
-
-	inbound := ""
+	inbound := "socks"
 	isDns := dest.Address.String() == t.router
 	if isDns {
 		inbound = "dns-in"
@@ -128,7 +129,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 
 	if t.dumpUid || t.debug {
 
-		uid, err := uidDumper.DumpUid(srcIp.To4() == nil, false, srcIp.String(), int(src.Port), dstIp.String(), int(dest.Port))
+		uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int(src.Port), dest.Address.IP().String(), int(dest.Port))
 		var info *UidInfo
 
 		if err == nil {
@@ -152,16 +153,28 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 
 	}
 
-	ctx := context.Background()
+	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{
+		Source: src,
+		Tag:    inbound,
+	})
 
-	if inbound != "" {
-		ctx = session.ContextWithInbound(ctx, &session.Inbound{
-			Source: src,
-			Tag:    inbound,
+	if t.sniffing {
+		req := session.SniffingRequest{
+			Enabled:      true,
+			MetadataOnly: false,
+		}
+		if !t.fakedns {
+			req.OverrideDestinationForProtocol = []string{"http", "tls"}
+		} else {
+			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
+		}
+		ctx = session.ContextWithContent(ctx, &session.Content{
+			SniffingRequest: req,
 		})
 	}
 
 	destConn, err := v2rayCore.Dial(ctx, t.v2ray.core, dest)
+
 	if err != nil {
 		log.Errorf("[TCP] dial failed: %s", err.Error())
 		return
@@ -242,7 +255,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	srcIp := src.Address.IP()
 	dstIp := dest.Address.IP()
 
-	inbound := ""
+	inbound := "socks"
 	isDns := dest.Address.String() == t.router || dest.Port == 53 && t.hijackDns
 
 	if !isDns && t.hijackDns {
@@ -290,16 +303,28 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		}
 	}
 
-	ctx := context.Background()
+	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{
+		Source: src,
+		Tag:    inbound,
+	})
 
-	if inbound != "" {
-		ctx = session.ContextWithInbound(ctx, &session.Inbound{
-			Source: src,
-			Tag:    inbound,
+	if t.sniffing {
+		req := session.SniffingRequest{
+			Enabled:      true,
+			MetadataOnly: false,
+		}
+		if !t.fakedns {
+			req.OverrideDestinationForProtocol = []string{"http", "tls"}
+		} else {
+			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
+		}
+		ctx = session.ContextWithContent(ctx, &session.Content{
+			SniffingRequest: req,
 		})
 	}
 
 	conn, err := v2rayCore.Dial(ctx, t.v2ray.core, dest)
+
 	if err != nil {
 		log.Errorf("[UDP] dial failed: %s", err.Error())
 		return
