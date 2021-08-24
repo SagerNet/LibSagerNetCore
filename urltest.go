@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	core "github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
 	"net"
 	"net/http"
 	"time"
@@ -36,11 +37,14 @@ func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Co
 	return int(time.Since(start).Milliseconds()), nil
 }
 
-func UrlTestV2ray(instance *V2RayInstance, link string, timeout int) (int, error) {
+func UrlTestV2ray(instance *V2RayInstance, inbound string, link string, timeout int) (int, error) {
 	return urlTest(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dest, err := v2rayNet.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
 		if err != nil {
 			return nil, err
+		}
+		if inbound != "" {
+			ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: inbound})
 		}
 		return core.Dial(ctx, instance.core, dest)
 	}, link, timeout)
