@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/v2fly/v2ray-core/v4/common/net"
+	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"golang.org/x/sys/unix"
 	"os"
@@ -49,6 +50,22 @@ func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, dest
 		return nil, err
 	}
 
+	var destIp *net.IP
+	if ipv6Mode == 3 {
+		// ipv6 only
+
+		for _, addr := range addresses {
+			v2Addr := v2rayNet.ParseAddress(addr.String())
+			if v2Addr.Family().IsIPv6() {
+				destIp = &addr.IP
+				break
+			}
+		}
+	}
+	if destIp == nil {
+		destIp = &addresses[0].IP
+	}
+
 	fd, err := getFd(destination.Network)
 	if err != nil {
 		return nil, err
@@ -61,7 +78,7 @@ func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, dest
 	socketAddress := &unix.SockaddrInet6{
 		Port: portNum,
 	}
-	copy(socketAddress.Addr[:], addresses[0].IP)
+	copy(socketAddress.Addr[:], *destIp)
 
 	err = unix.Connect(fd, socketAddress)
 	if err != nil {

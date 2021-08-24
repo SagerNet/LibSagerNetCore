@@ -1,6 +1,5 @@
 package libcore
 
-import "C"
 import (
 	"context"
 	"fmt"

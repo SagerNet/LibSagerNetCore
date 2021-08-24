@@ -87,6 +87,7 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 	tun.dumpUid = len(uidRules) > 0
 	tun.uidRule = uidRules
 
+	net.DefaultResolver.Dial = tun.DialDNS
 	return tun, nil
 }
 
@@ -94,6 +95,7 @@ func (t *Tun2socks) Close() {
 	t.access.Lock()
 	defer t.access.Unlock()
 
+	net.DefaultResolver.Dial = nil
 	t.stack.Close()
 }
 
@@ -122,7 +124,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 	}
 
 	inbound := "socks"
-	isDns := dest.Address.String() == t.router
+	isDns := dest.Address.String() == t.router || dest.Port == 53
 	if isDns {
 		inbound = "dns-in"
 	}
@@ -256,15 +258,13 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	dstIp := dest.Address.IP()
 
 	inbound := "socks"
-	isDns := dest.Address.String() == t.router || dest.Port == 53 && t.hijackDns
+	isDns := dest.Address.String() == t.router
 
 	if !isDns && t.hijackDns {
 		dnsMsg := dns.Msg{}
 		err := dnsMsg.Unpack(packet.Data())
-		if err == nil {
-			if !dnsMsg.Response && len(dnsMsg.Question) > 0 {
-				isDns = true
-			}
+		if err == nil && !dnsMsg.Response && len(dnsMsg.Question) > 0 {
+			isDns = true
 		}
 	}
 
@@ -353,6 +353,16 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	packet.Drop()
 	t.udpTable.Delete(natKey)
 
+}
+
+func (t *Tun2socks) DialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
+	return v2rayCore.Dial(session.ContextWithInbound(ctx, &session.Inbound{
+		Tag: "dns-in",
+	}), t.v2ray.core, v2rayNet.Destination{
+		Network: v2rayNet.Network_TCP,
+		Address: v2rayNet.ParseAddress("1.0.0.1"),
+		Port:    53,
+	})
 }
 
 type natTable struct {
