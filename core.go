@@ -3,6 +3,7 @@ package libcore
 import (
 	"github.com/sagernet/libping"
 	"os"
+	"runtime"
 )
 
 func init() {
@@ -25,4 +26,8 @@ func SetIPv6Mode(mode int) {
 
 func IcmpPing(address string, timeout int) (int, error) {
 	return libping.IcmpPing(address, timeout)
+}
+
+func Gc() {
+	runtime.GC()
 }

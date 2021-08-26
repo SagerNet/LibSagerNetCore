@@ -9,13 +9,10 @@ package libcore
 */
 import "C"
 import (
-	"bufio"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"log"
-	"os"
 	"strings"
-	"syscall"
 	"unsafe"
 
 	appLog "github.com/v2fly/v2ray-core/v4/app/log"
@@ -52,14 +49,13 @@ func (hook *androidHook) Levels() []logrus.Level {
 }
 
 func (hook *androidHook) Fire(e *logrus.Entry) error {
-	var priority C.int
-
 	formatted, err := logrus.StandardLogger().Formatter.Format(e)
 	if err != nil {
 		return err
 	}
 	str := C.CString(string(formatted))
 
+	var priority C.int
 	switch e.Level {
 	case logrus.PanicLevel:
 		priority = C.ANDROID_LOG_FATAL
@@ -102,51 +98,9 @@ func (stdLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func lineLog(f *os.File, priority C.int) {
-	const logSize = 1024 // matches android/log.h.
-	r := bufio.NewReaderSize(f, logSize)
-	for {
-		line, _, err := r.ReadLine()
-		str := string(line)
-		if err != nil {
-			str += " " + err.Error()
-		}
-		cstr := C.CString(str)
-		C.__android_log_write(priority, tag, cstr)
-		C.free(unsafe.Pointer(cstr))
-		if err != nil {
-			break
-		}
-	}
-}
-
 func initLog() {
 	log.SetOutput(stdLogWriter{})
 	log.SetFlags(log.Flags() &^ log.LstdFlags)
-
-	r, w, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	stderr := w
-	if err := syscall.Dup3(int(w.Fd()), int(os.Stderr.Fd()), 0); err != nil {
-		panic(err)
-	}
-	go lineLog(r, C.ANDROID_LOG_ERROR)
-
-	r, w, err = os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	stdout := w
-	if err := syscall.Dup3(int(w.Fd()), int(os.Stdout.Fd()), 0); err != nil {
-		panic(err)
-	}
-	go lineLog(r, C.ANDROID_LOG_INFO)
-
-	os.Stderr = stderr
-	os.Stdout = stdout
-
 	logrus.SetFormatter(&androidFormatter{})
 	logrus.AddHook(&androidHook{})
 

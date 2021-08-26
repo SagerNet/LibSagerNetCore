@@ -10,6 +10,7 @@ import (
 	v2rayCore "github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
+	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/xjasonlyu/tun2socks/core"
 	"github.com/xjasonlyu/tun2socks/core/device/rwbased"
 	"github.com/xjasonlyu/tun2socks/core/stack"
@@ -19,6 +20,8 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Tun2socks struct {
@@ -30,10 +33,10 @@ type Tun2socks struct {
 	uidRule   map[int]int
 	v2ray     *V2RayInstance
 	udpTable  *natTable
-	dumpUid   bool
 	fakedns   bool
 	sniffing  bool
 	debug     bool
+	appStats  map[int]*appStats
 }
 
 var uidDumper UidDumper
@@ -65,6 +68,7 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 		sniffing:  sniffing,
 		fakedns:   fakedns,
 		debug:     debug,
+		appStats:  map[int]*appStats{},
 	}
 
 	d, err := rwbased.New(file, uint32(mtu))
@@ -84,10 +88,9 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 
 	var uidRules = map[int]int{}
 	err = json.Unmarshal([]byte(uidRule), &uidRules)
-	tun.dumpUid = len(uidRules) > 0
 	tun.uidRule = uidRules
 
-	net.DefaultResolver.Dial = tun.DialDNS
+	net.DefaultResolver.Dial = tun.dialDNS
 	return tun, nil
 }
 
@@ -129,30 +132,24 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		inbound = "dns-in"
 	}
 
-	if t.dumpUid || t.debug {
-
-		uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int(src.Port), dest.Address.IP().String(), int(dest.Port))
-		var info *UidInfo
-
+	uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int(src.Port), dest.Address.IP().String(), int(dest.Port))
+	var info *UidInfo
+	self := uid > 0 && uid == os.Getuid()
+	if err == nil && uid > 0 && !self {
+		rule := t.uidRule[uid]
+		if rule > 0 && !isDns {
+			inbound = fmt.Sprint("uid-", uid)
+		}
+	}
+	if t.debug && !self && uid >= 10000 {
 		if err == nil {
-			rule := t.uidRule[uid]
-			if rule != 0 && !isDns {
-				inbound = fmt.Sprint("uid-", uid)
-			}
+			info, _ = uidDumper.GetUidInfo(uid)
 		}
-
-		if t.debug {
-			if err == nil {
-				info, _ = uidDumper.GetUidInfo(uid)
-			}
-			if info == nil {
-				log.Infof("[TCP] %s ==> %s", src.NetAddr(), dest.NetAddr())
-			} else {
-				log.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
-			}
-
+		if info == nil {
+			log.Infof("[TCP] %s ==> %s", src.NetAddr(), dest.NetAddr())
+		} else {
+			log.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
 		}
-
 	}
 
 	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{
@@ -160,7 +157,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		Tag:    inbound,
 	})
 
-	if t.sniffing {
+	if !isDns && t.sniffing {
 		req := session.SniffingRequest{
 			Enabled:      true,
 			MetadataOnly: false,
@@ -182,10 +179,39 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		return
 	}
 
-	go func() {
+	if !self {
+		var uf int
+		if uid >= 10000 {
+			uf = uid
+		} else {
+			uf = 1000
+		}
+
+		t.access.Lock()
+		stats := t.appStats[uf]
+		if stats == nil {
+			stats = &appStats{}
+			t.appStats[uf] = stats
+		}
+		t.access.Unlock()
+		atomic.AddInt32(&stats.tcpConn, 1)
+		atomic.AddUint32(&stats.tcpConnTotal, 1)
+		atomic.StoreInt64(&stats.deactivateAt, 0)
+		defer func() {
+			if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
+				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+			}
+		}()
+		destConn = &statsConn{destConn, &stats.uplink, &stats.downlink}
+	}
+
+	_ = task.Run(ctx, func() error {
+		_, _ = io.Copy(conn, destConn)
+		return io.EOF
+	}, func() error {
 		_, _ = io.Copy(destConn, conn)
-	}()
-	_, _ = io.Copy(conn, destConn)
+		return io.EOF
+	})
 
 	_ = conn.Close()
 	_ = destConn.Close()
@@ -272,34 +298,31 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		inbound = "dns-in"
 	}
 
-	if t.dumpUid || t.debug {
+	uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int(src.Port), dstIp.String(), int(dest.Port))
+	var info *UidInfo
+	self := uid > 0 && uid == os.Getuid()
+	if err == nil && uid > 0 && !self {
+		rule := t.uidRule[uid]
+		if rule > 0 && !isDns {
+			inbound = fmt.Sprint("uid-", uid)
+		}
+	}
 
-		uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int(src.Port), dstIp.String(), int(dest.Port))
-		var info *UidInfo
-
+	if t.debug && !self && uid >= 1000 {
 		if err == nil {
-			rule := t.uidRule[uid]
-			if rule != 0 && !isDns {
-				inbound = fmt.Sprint("uid-", uid)
-			}
+			info, _ = uidDumper.GetUidInfo(uid)
+		}
+		var tag string
+		if !isDns {
+			tag = "UDP"
+		} else {
+			tag = "DNS"
 		}
 
-		if t.debug {
-			if err == nil {
-				info, _ = uidDumper.GetUidInfo(uid)
-			}
-			var tag string
-			if !isDns {
-				tag = "UDP"
-			} else {
-				tag = "DNS"
-			}
-
-			if info == nil {
-				log.Infof("[%s] %s ==> %s", tag, src.NetAddr(), dest.NetAddr())
-			} else {
-				log.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
-			}
+		if info == nil {
+			log.Infof("[%s] %s ==> %s", tag, src.NetAddr(), dest.NetAddr())
+		} else {
+			log.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
 		}
 	}
 
@@ -308,7 +331,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		Tag:    inbound,
 	})
 
-	if t.sniffing {
+	if !isDns && t.sniffing {
 		req := session.SniffingRequest{
 			Enabled:      true,
 			MetadataOnly: false,
@@ -329,6 +352,33 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		log.Errorf("[UDP] dial failed: %s", err.Error())
 		return
 	}
+
+	if !self && !isDns {
+		var uf int
+		if uid >= 10000 {
+			uf = uid
+		} else {
+			uf = 1000
+		}
+
+		t.access.Lock()
+		stats := t.appStats[uf]
+		if stats == nil {
+			stats = &appStats{}
+			t.appStats[uf] = stats
+		}
+		t.access.Unlock()
+		atomic.AddInt32(&stats.udpConn, 1)
+		atomic.AddUint32(&stats.udpConnTotal, 1)
+		atomic.StoreInt64(&stats.deactivateAt, 0)
+		defer func() {
+			if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
+				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+			}
+		}()
+		conn = &statsConn{conn, &stats.uplink, &stats.downlink}
+	}
+
 	t.udpTable.Set(natKey, conn)
 
 	go sendTo(false)
@@ -352,10 +402,9 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	_ = conn.Close()
 	packet.Drop()
 	t.udpTable.Delete(natKey)
-
 }
 
-func (t *Tun2socks) DialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
+func (t *Tun2socks) dialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
 	return v2rayCore.Dial(session.ContextWithInbound(ctx, &session.Inbound{
 		Tag: "dns-in",
 	}), t.v2ray.core, v2rayNet.Destination{
