@@ -2,7 +2,6 @@ package libcore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Dreamacro/clash/common/pool"
@@ -30,7 +29,6 @@ type Tun2socks struct {
 	device    *rwbased.Endpoint
 	router    string
 	hijackDns bool
-	uidRule   map[int]int
 	v2ray     *V2RayInstance
 	udpTable  *natTable
 	fakedns   bool
@@ -55,7 +53,24 @@ func SetUidDumper(dumper UidDumper) {
 	uidDumper = dumper
 }
 
-func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool, uidRule string) (*Tun2socks, error) {
+var foregroundUid int
+
+func SetForegroundUid(uid int) {
+	foregroundUid = uid
+}
+
+var foregroundImeUid int
+
+func SetForegroundImeUid(uid int) {
+	foregroundImeUid = uid
+}
+
+const (
+	appStatusForeground = "foreground"
+	appStatusBackground = "background"
+)
+
+func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool) (*Tun2socks, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
@@ -85,10 +100,6 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 	} else {
 		log.SetLevel(log.WarnLevel)
 	}
-
-	var uidRules = map[int]int{}
-	err = json.Unmarshal([]byte(uidRule), &uidRules)
-	tun.uidRule = uidRules
 
 	net.DefaultResolver.Dial = tun.dialDNS
 	return tun, nil
@@ -126,21 +137,19 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		return
 	}
 
-	inbound := "socks"
+	inbound := &session.Inbound{
+		Source: src,
+		Tag:    "socks",
+	}
+
 	isDns := dest.Address.String() == t.router || dest.Port == 53
 	if isDns {
-		inbound = "dns-in"
+		inbound.Tag = "dns-in"
 	}
 
 	uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int(src.Port), dest.Address.IP().String(), int(dest.Port))
 	var info *UidInfo
 	self := uid > 0 && uid == os.Getuid()
-	if err == nil && uid > 0 && !self {
-		rule := t.uidRule[uid]
-		if rule > 0 && !isDns {
-			inbound = fmt.Sprint("uid-", uid)
-		}
-	}
 	if t.debug && !self && uid >= 10000 {
 		if err == nil {
 			info, _ = uidDumper.GetUidInfo(uid)
@@ -152,10 +161,22 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		}
 	}
 
-	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{
-		Source: src,
-		Tag:    inbound,
-	})
+	var uf int
+	if uid >= 10000 {
+		uf = uid
+	} else {
+		uf = 1000
+	}
+
+	inbound.Uid = uint32(uf)
+
+	if uf == foregroundUid || uf == foregroundImeUid {
+		inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
+	} else {
+		inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
+	}
+
+	ctx := session.ContextWithInbound(context.Background(), inbound)
 
 	if !isDns && t.sniffing {
 		req := session.SniffingRequest{
@@ -180,12 +201,6 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 	}
 
 	if !self {
-		var uf int
-		if uid >= 10000 {
-			uf = uid
-		} else {
-			uf = 1000
-		}
 
 		t.access.Lock()
 		stats := t.appStats[uf]
@@ -283,7 +298,10 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	srcIp := src.Address.IP()
 	dstIp := dest.Address.IP()
 
-	inbound := "socks"
+	inbound := &session.Inbound{
+		Source: src,
+		Tag:    "socks",
+	}
 	isDns := dest.Address.String() == t.router
 
 	if !isDns && t.hijackDns {
@@ -295,18 +313,12 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	}
 
 	if isDns {
-		inbound = "dns-in"
+		inbound.Tag = "dns-in"
 	}
 
 	uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int(src.Port), dstIp.String(), int(dest.Port))
 	var info *UidInfo
 	self := uid > 0 && uid == os.Getuid()
-	if err == nil && uid > 0 && !self {
-		rule := t.uidRule[uid]
-		if rule > 0 && !isDns {
-			inbound = fmt.Sprint("uid-", uid)
-		}
-	}
 
 	if t.debug && !self && uid >= 1000 {
 		if err == nil {
@@ -326,10 +338,21 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		}
 	}
 
-	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{
-		Source: src,
-		Tag:    inbound,
-	})
+	var uf int
+	if uid >= 10000 {
+		uf = uid
+	} else {
+		uf = 1000
+	}
+
+	inbound.Uid = uint32(uf)
+	if uf == foregroundUid || uf == foregroundImeUid {
+		inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
+	} else {
+		inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
+	}
+
+	ctx := session.ContextWithInbound(context.Background(), inbound)
 
 	if !isDns && t.sniffing {
 		req := session.SniffingRequest{
