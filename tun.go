@@ -34,7 +34,10 @@ type Tun2socks struct {
 	fakedns   bool
 	sniffing  bool
 	debug     bool
-	appStats  map[uint16]*appStats
+
+	dumpUid      bool
+	trafficStats bool
+	appStats     map[uint16]*appStats
 }
 
 var uidDumper UidDumper
@@ -70,20 +73,25 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool) (*Tun2socks, error) {
+func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2socks, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
 	}
 	tun := &Tun2socks{
-		router:    router,
-		hijackDns: hijackDns,
-		v2ray:     v2ray,
-		udpTable:  &natTable{},
-		sniffing:  sniffing,
-		fakedns:   fakedns,
-		debug:     debug,
-		appStats:  map[uint16]*appStats{},
+		router:       router,
+		hijackDns:    hijackDns,
+		v2ray:        v2ray,
+		udpTable:     &natTable{},
+		sniffing:     sniffing,
+		fakedns:      fakedns,
+		debug:        debug,
+		dumpUid:      dumpUid,
+		trafficStats: trafficStats,
+	}
+
+	if trafficStats {
+		tun.appStats = map[uint16]*appStats{}
 	}
 
 	d, err := rwbased.New(file, uint32(mtu))
@@ -147,33 +155,38 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		inbound.Tag = "dns-in"
 	}
 
-	uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int32(src.Port), dest.Address.IP().String(), int32(dest.Port))
-	var info *UidInfo
-	self := uid > 0 && int(uid) == os.Getuid()
-	if t.debug && !self && uid >= 10000 {
+	var uid uint16
+	var self bool
+
+	if t.dumpUid || t.trafficStats {
+		u, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int32(src.Port), dest.Address.IP().String(), int32(dest.Port))
 		if err == nil {
-			info, _ = uidDumper.GetUidInfo(uid)
+			uid = uint16(u)
+			var info *UidInfo
+			self = uid > 0 && int(uid) == os.Getuid()
+			if t.debug && !self && uid >= 10000 {
+				if err == nil {
+					info, _ = uidDumper.GetUidInfo(int32(uid))
+				}
+				if info == nil {
+					log.Infof("[TCP] %s ==> %s", src.NetAddr(), dest.NetAddr())
+				} else {
+					log.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
+				}
+			}
+
+			if uid < 10000 {
+				uid = 1000
+			}
+
+			inbound.Uid = uint32(uid)
+
+			if uid == foregroundUid || uid == foregroundImeUid {
+				inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
+			} else {
+				inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
+			}
 		}
-		if info == nil {
-			log.Infof("[TCP] %s ==> %s", src.NetAddr(), dest.NetAddr())
-		} else {
-			log.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
-		}
-	}
-
-	var uf uint16
-	if uid >= 10000 {
-		uf = uint16(uid)
-	} else {
-		uf = 1000
-	}
-
-	inbound.Uid = uint32(uf)
-
-	if uf == foregroundUid || uf == foregroundImeUid {
-		inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
-	} else {
-		inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
 	}
 
 	ctx := session.ContextWithInbound(context.Background(), inbound)
@@ -200,24 +213,29 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		return
 	}
 
-	if !self {
+	if t.trafficStats && !self && !isDns {
 
 		t.access.Lock()
-		stats := t.appStats[uf]
-		if stats == nil {
-			stats = &appStats{}
-			t.appStats[uf] = stats
-		}
-		t.access.Unlock()
-		atomic.AddInt32(&stats.tcpConn, 1)
-		atomic.AddUint32(&stats.tcpConnTotal, 1)
-		atomic.StoreInt64(&stats.deactivateAt, 0)
-		defer func() {
-			if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
-				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+		if !t.trafficStats {
+			t.access.Unlock()
+		} else {
+
+			stats := t.appStats[uid]
+			if stats == nil {
+				stats = &appStats{}
+				t.appStats[uid] = stats
 			}
-		}()
-		destConn = &statsConn{destConn, &stats.uplink, &stats.downlink}
+			t.access.Unlock()
+			atomic.AddInt32(&stats.tcpConn, 1)
+			atomic.AddUint32(&stats.tcpConnTotal, 1)
+			atomic.StoreInt64(&stats.deactivateAt, 0)
+			defer func() {
+				if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
+					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+				}
+			}()
+			destConn = &statsConn{destConn, &stats.uplink, &stats.downlink}
+		}
 	}
 
 	_ = task.Run(ctx, func() error {
@@ -316,40 +334,48 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		inbound.Tag = "dns-in"
 	}
 
-	uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int32(src.Port), dstIp.String(), int32(dest.Port))
-	var info *UidInfo
-	self := uid > 0 && int(uid) == os.Getuid()
+	var uid uint16
+	var self bool
 
-	if t.debug && !self && uid >= 1000 {
+	if t.dumpUid || t.trafficStats {
+
+		u, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int32(src.Port), dstIp.String(), int32(dest.Port))
 		if err == nil {
-			info, _ = uidDumper.GetUidInfo(uid)
-		}
-		var tag string
-		if !isDns {
-			tag = "UDP"
-		} else {
-			tag = "DNS"
+			uid = uint16(u)
+			var info *UidInfo
+			self = uid > 0 && int(uid) == os.Getuid()
+
+			if t.debug && !self && uid >= 1000 {
+				if err == nil {
+					info, _ = uidDumper.GetUidInfo(int32(uid))
+				}
+				var tag string
+				if !isDns {
+					tag = "UDP"
+				} else {
+					tag = "DNS"
+				}
+
+				if info == nil {
+					log.Infof("[%s] %s ==> %s", tag, src.NetAddr(), dest.NetAddr())
+				} else {
+					log.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
+				}
+			}
+
+			if uid < 10000 {
+				uid = 1000
+			}
+
+			inbound.Uid = uint32(uid)
+			if uid == foregroundUid || uid == foregroundImeUid {
+				inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
+			} else {
+				inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
+			}
+
 		}
 
-		if info == nil {
-			log.Infof("[%s] %s ==> %s", tag, src.NetAddr(), dest.NetAddr())
-		} else {
-			log.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
-		}
-	}
-
-	var uf uint16
-	if uid >= 10000 {
-		uf = uint16(uid)
-	} else {
-		uf = 1000
-	}
-
-	inbound.Uid = uint32(uf)
-	if uf == foregroundUid || uf == foregroundImeUid {
-		inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
-	} else {
-		inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
 	}
 
 	ctx := session.ContextWithInbound(context.Background(), inbound)
@@ -376,30 +402,27 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		return
 	}
 
-	if !self && !isDns {
-		var uf uint16
-		if uid >= 10000 {
-			uf = uint16(uid)
-		} else {
-			uf = 1000
-		}
-
+	if t.trafficStats && !self && !isDns {
 		t.access.Lock()
-		stats := t.appStats[uf]
-		if stats == nil {
-			stats = &appStats{}
-			t.appStats[uf] = stats
-		}
-		t.access.Unlock()
-		atomic.AddInt32(&stats.udpConn, 1)
-		atomic.AddUint32(&stats.udpConnTotal, 1)
-		atomic.StoreInt64(&stats.deactivateAt, 0)
-		defer func() {
-			if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
-				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+		if !t.trafficStats {
+			t.access.Unlock()
+		} else {
+			stats := t.appStats[uid]
+			if stats == nil {
+				stats = &appStats{}
+				t.appStats[uid] = stats
 			}
-		}()
-		conn = &statsConn{conn, &stats.uplink, &stats.downlink}
+			t.access.Unlock()
+			atomic.AddInt32(&stats.udpConn, 1)
+			atomic.AddUint32(&stats.udpConnTotal, 1)
+			atomic.StoreInt64(&stats.deactivateAt, 0)
+			defer func() {
+				if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
+					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+				}
+			}()
+			conn = &statsConn{conn, &stats.uplink, &stats.downlink}
+		}
 	}
 
 	t.udpTable.Set(natKey, conn)

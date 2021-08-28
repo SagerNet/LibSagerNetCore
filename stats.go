@@ -38,7 +38,15 @@ type TrafficListener interface {
 	UpdateStats(t *AppStats)
 }
 
+func (t *Tun2socks) GetTrafficStatsEnabled() bool {
+	return t.trafficStats
+}
+
 func (t *Tun2socks) ResetAppTraffics() {
+	if !t.trafficStats {
+		return
+	}
+
 	t.access.Lock()
 	var toDel []uint16
 	for uid, stat := range t.appStats {
@@ -57,6 +65,10 @@ func (t *Tun2socks) ResetAppTraffics() {
 }
 
 func (t *Tun2socks) ReadAppTraffics(listener TrafficListener) error {
+	if !t.trafficStats {
+		return nil
+	}
+
 	var stats []*AppStats
 	t.access.Lock()
 	for uid, stat := range t.appStats {
