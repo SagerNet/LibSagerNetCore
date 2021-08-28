@@ -99,11 +99,11 @@ type statsConn struct {
 func (c *statsConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	defer atomic.AddUint64(c.downlink, uint64(n))
-	return n, err
+	return
 }
 
 func (c *statsConn) Write(b []byte) (n int, err error) {
 	n, err = c.Conn.Write(b)
 	defer atomic.AddUint64(c.uplink, uint64(n))
-	return n, err
+	return
 }

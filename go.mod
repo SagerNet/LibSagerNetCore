@@ -13,9 +13,9 @@ require (
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v4 v4.41.1
 	github.com/xjasonlyu/tun2socks v1.18.4-0.20210821024837-525d424fca52
-	golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55
+	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
 )
 
-replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210827053921-c87e612d4b39
+replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210828091037-dca10f92071c
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/ClashDotNetFramework/experimental-clash v1.7.2
