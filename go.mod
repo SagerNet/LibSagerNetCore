@@ -16,6 +16,6 @@ require (
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
 )
 
-replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210828091037-dca10f92071c
+replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210828154311-5f8a46ac56ff
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/ClashDotNetFramework/experimental-clash v1.7.2
