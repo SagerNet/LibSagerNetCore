@@ -65,8 +65,8 @@ func safeConnClose(c net.Conn, err error) {
 	}
 }
 
-func NewSocks4To5Instance(socksPort int, serverAddress string, serverPort int, username string, socks4a bool) (*ClashBasedInstance, error) {
-	addr := net.JoinHostPort(serverAddress, strconv.Itoa(serverPort))
+func NewSocks4To5Instance(socksPort int32, serverAddress string, serverPort int32, username string, socks4a bool) (*ClashBasedInstance, error) {
+	addr := net.JoinHostPort(serverAddress, strconv.Itoa(int(serverPort)))
 	out := &socks4To5Instance{
 		Base:     outbound.NewBase("", addr, -1, false),
 		username: username,

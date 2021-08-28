@@ -34,7 +34,7 @@ type Tun2socks struct {
 	fakedns   bool
 	sniffing  bool
 	debug     bool
-	appStats  map[int]*appStats
+	appStats  map[uint16]*appStats
 }
 
 var uidDumper UidDumper
@@ -45,24 +45,24 @@ type UidInfo struct {
 }
 
 type UidDumper interface {
-	DumpUid(ipv6 bool, udp bool, srcIp string, srcPort int, destIp string, destPort int) (int, error)
-	GetUidInfo(uid int) (*UidInfo, error)
+	DumpUid(ipv6 bool, udp bool, srcIp string, srcPort int32, destIp string, destPort int32) (int32, error)
+	GetUidInfo(uid int32) (*UidInfo, error)
 }
 
 func SetUidDumper(dumper UidDumper) {
 	uidDumper = dumper
 }
 
-var foregroundUid int
+var foregroundUid uint16
 
-func SetForegroundUid(uid int) {
-	foregroundUid = uid
+func SetForegroundUid(uid int32) {
+	foregroundUid = uint16(uid)
 }
 
-var foregroundImeUid int
+var foregroundImeUid uint16
 
-func SetForegroundImeUid(uid int) {
-	foregroundImeUid = uid
+func SetForegroundImeUid(uid int32) {
+	foregroundImeUid = uint16(uid)
 }
 
 const (
@@ -70,7 +70,7 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool) (*Tun2socks, error) {
+func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool) (*Tun2socks, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
@@ -83,7 +83,7 @@ func NewTun2socks(fd int, mtu int, v2ray *V2RayInstance, router string, hijackDn
 		sniffing:  sniffing,
 		fakedns:   fakedns,
 		debug:     debug,
-		appStats:  map[int]*appStats{},
+		appStats:  map[uint16]*appStats{},
 	}
 
 	d, err := rwbased.New(file, uint32(mtu))
@@ -147,9 +147,9 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		inbound.Tag = "dns-in"
 	}
 
-	uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int(src.Port), dest.Address.IP().String(), int(dest.Port))
+	uid, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int32(src.Port), dest.Address.IP().String(), int32(dest.Port))
 	var info *UidInfo
-	self := uid > 0 && uid == os.Getuid()
+	self := uid > 0 && int(uid) == os.Getuid()
 	if t.debug && !self && uid >= 10000 {
 		if err == nil {
 			info, _ = uidDumper.GetUidInfo(uid)
@@ -161,9 +161,9 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		}
 	}
 
-	var uf int
+	var uf uint16
 	if uid >= 10000 {
-		uf = uid
+		uf = uint16(uid)
 	} else {
 		uf = 1000
 	}
@@ -316,9 +316,9 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		inbound.Tag = "dns-in"
 	}
 
-	uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int(src.Port), dstIp.String(), int(dest.Port))
+	uid, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int32(src.Port), dstIp.String(), int32(dest.Port))
 	var info *UidInfo
-	self := uid > 0 && uid == os.Getuid()
+	self := uid > 0 && int(uid) == os.Getuid()
 
 	if t.debug && !self && uid >= 1000 {
 		if err == nil {
@@ -338,9 +338,9 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		}
 	}
 
-	var uf int
+	var uf uint16
 	if uid >= 10000 {
-		uf = uid
+		uf = uint16(uid)
 	} else {
 		uf = 1000
 	}
@@ -377,9 +377,9 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	}
 
 	if !self && !isDns {
-		var uf int
+		var uf uint16
 		if uid >= 10000 {
-			uf = uid
+			uf = uint16(uid)
 		} else {
 			uf = 1000
 		}

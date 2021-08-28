@@ -6,18 +6,18 @@ import (
 )
 
 type AppStats struct {
-	Uid          int
-	TcpConn      int
-	UdpConn      int
-	TcpConnTotal int
-	UdpConnTotal int
+	Uid          int32
+	TcpConn      int32
+	UdpConn      int32
+	TcpConnTotal int32
+	UdpConnTotal int32
 
 	Uplink        int64
 	Downlink      int64
 	UplinkTotal   int64
 	DownlinkTotal int64
 
-	DeactivateAt int
+	DeactivateAt int32
 }
 
 type appStats struct {
@@ -40,7 +40,7 @@ type TrafficListener interface {
 
 func (t *Tun2socks) ResetAppTraffics() {
 	t.access.Lock()
-	var toDel []int
+	var toDel []uint16
 	for uid, stat := range t.appStats {
 		atomic.StoreUint64(&stat.uplink, 0)
 		atomic.StoreUint64(&stat.downlink, 0)
@@ -61,12 +61,12 @@ func (t *Tun2socks) ReadAppTraffics(listener TrafficListener) error {
 	t.access.Lock()
 	for uid, stat := range t.appStats {
 		export := &AppStats{
-			Uid:          uid,
-			TcpConn:      int(stat.tcpConn),
-			UdpConn:      int(stat.udpConn),
-			TcpConnTotal: int(stat.tcpConnTotal),
-			UdpConnTotal: int(stat.udpConnTotal),
-			DeactivateAt: int(stat.deactivateAt),
+			Uid:          int32(uid),
+			TcpConn:      stat.tcpConn,
+			UdpConn:      stat.udpConn,
+			TcpConnTotal: int32(stat.tcpConnTotal),
+			UdpConnTotal: int32(stat.udpConnTotal),
+			DeactivateAt: int32(stat.deactivateAt),
 		}
 
 		uplink := atomic.SwapUint64(&stat.uplink, 0)

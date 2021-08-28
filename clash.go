@@ -9,6 +9,7 @@ import (
 	clashC "github.com/Dreamacro/clash/constant"
 	"github.com/Dreamacro/clash/listener/socks"
 	"github.com/pkg/errors"
+	"github.com/v2fly/v2ray-core/v4/common/task"
 	"io"
 	"log"
 	"net"
@@ -17,7 +18,7 @@ import (
 
 type ClashBasedInstance struct {
 	access    sync.Mutex
-	socksPort int
+	socksPort int32
 	ctx       chan constant.ConnContext
 	in        *socks.Listener
 	out       clashC.ProxyAdapter
@@ -33,7 +34,7 @@ func (s *ClashBasedInstance) DialContext(ctx context.Context, network, address s
 	return s.out.DialContext(ctx, dest)
 }
 
-func newClashBasedInstance(socksPort int, out clashC.ProxyAdapter) *ClashBasedInstance {
+func newClashBasedInstance(socksPort int32, out clashC.ProxyAdapter) *ClashBasedInstance {
 	return &ClashBasedInstance{
 		socksPort: socksPort,
 		ctx:       make(chan constant.ConnContext, 100),
@@ -80,15 +81,21 @@ func (s *ClashBasedInstance) loop() {
 		conn := conn
 		metadata := conn.Metadata()
 		go func() {
-			remote, err := s.out.DialContext(context.Background(), metadata)
+			ctx := context.Background()
+			remote, err := s.out.DialContext(ctx, metadata)
 			if err != nil {
 				fmt.Printf("Dial error: %s\n", err.Error())
 				return
 			}
-			go func() {
+
+			_ = task.Run(ctx, func() error {
 				_, _ = io.Copy(remote, conn.Conn())
-			}()
-			_, _ = io.Copy(conn.Conn(), remote)
+				return io.EOF
+			}, func() error {
+				_, _ = io.Copy(conn.Conn(), remote)
+				return io.EOF
+			})
+
 			_ = remote.Close()
 			_ = conn.Conn().Close()
 		}()
@@ -141,7 +148,7 @@ func networkForClash(network string) clashC.NetWork {
 	return 0
 }
 
-func NewShadowsocksInstance(socksPort int, server string, port int, password string, cipher string, plugin string, pluginOpts string) (*ClashBasedInstance, error) {
+func NewShadowsocksInstance(socksPort int32, server string, port int32, password string, cipher string, plugin string, pluginOpts string) (*ClashBasedInstance, error) {
 	if plugin == "obfs-local" || plugin == "simple-obfs" {
 		plugin = "obfs"
 	}
@@ -152,7 +159,7 @@ func NewShadowsocksInstance(socksPort int, server string, port int, password str
 	}
 	out, err := outbound.NewShadowSocks(outbound.ShadowSocksOption{
 		Server:     server,
-		Port:       port,
+		Port:       int(port),
 		Password:   password,
 		Cipher:     cipher,
 		Plugin:     plugin,
@@ -164,10 +171,10 @@ func NewShadowsocksInstance(socksPort int, server string, port int, password str
 	return newClashBasedInstance(socksPort, out), nil
 }
 
-func NewShadowsocksRInstance(socksPort int, server string, port int, password string, cipher string, obfs string, obfsParam string, protocol string, protocolParam string) (*ClashBasedInstance, error) {
+func NewShadowsocksRInstance(socksPort int32, server string, port int32, password string, cipher string, obfs string, obfsParam string, protocol string, protocolParam string) (*ClashBasedInstance, error) {
 	out, err := outbound.NewShadowSocksR(outbound.ShadowSocksROption{
 		Server:        server,
-		Port:          port,
+		Port:          int(port),
 		Password:      password,
 		Cipher:        cipher,
 		Obfs:          obfs,
@@ -182,15 +189,15 @@ func NewShadowsocksRInstance(socksPort int, server string, port int, password st
 	return newClashBasedInstance(socksPort, out), nil
 }
 
-func NewSnellInstance(socksPort int, server string, port int, psk string, obfsMode string, obfsHost string, version int) (*ClashBasedInstance, error) {
+func NewSnellInstance(socksPort int32, server string, port int32, psk string, obfsMode string, obfsHost string, version int32) (*ClashBasedInstance, error) {
 	obfs := map[string]interface{}{}
 	obfs["mode"] = obfsMode
 	obfs["host"] = obfsHost
 	out, err := outbound.NewSnell(outbound.SnellOption{
 		Server:   server,
-		Port:     port,
+		Port:     int(port),
 		Psk:      psk,
-		Version:  version,
+		Version:  int(version),
 		ObfsOpts: obfs,
 	})
 	if err != nil {

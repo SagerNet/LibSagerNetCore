@@ -12,8 +12,8 @@ import (
 type ApiInstance struct {
 	access     sync.Mutex
 	deviceName string
-	socksPort  int
-	dnsPort    int
+	socksPort  int32
+	dnsPort    int32
 	debug      bool
 	bypassLan  bool
 
@@ -21,7 +21,7 @@ type ApiInstance struct {
 	started bool
 }
 
-func NewApiInstance(deviceName string, socksPort int, dnsPort int, debug bool, bypassLan bool) *ApiInstance {
+func NewApiInstance(deviceName string, socksPort int32, dnsPort int32, debug bool, bypassLan bool) *ApiInstance {
 	return &ApiInstance{
 		deviceName: deviceName,
 		socksPort:  socksPort,

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Conn, error), link string, timeout int) (int, error) {
+func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Conn, error), link string, timeout int32) (int32, error) {
 	transport := &http.Transport{
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Millisecond,
 		DisableKeepAlives:   true,
@@ -34,10 +34,10 @@ func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Co
 	if err != nil {
 		return 0, err
 	}
-	return int(time.Since(start).Milliseconds()), nil
+	return int32(time.Since(start).Milliseconds()), nil
 }
 
-func UrlTestV2ray(instance *V2RayInstance, inbound string, link string, timeout int) (int, error) {
+func UrlTestV2ray(instance *V2RayInstance, inbound string, link string, timeout int32) (int32, error) {
 	return urlTest(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dest, err := v2rayNet.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
 		if err != nil {
@@ -50,7 +50,7 @@ func UrlTestV2ray(instance *V2RayInstance, inbound string, link string, timeout 
 	}, link, timeout)
 }
 
-func UrlTestClashBased(instance *ClashBasedInstance, link string, timeout int) (int, error) {
+func UrlTestClashBased(instance *ClashBasedInstance, link string, timeout int32) (int32, error) {
 	return urlTest(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dest, err := addrToMetadata(addr)
 		if err != nil {

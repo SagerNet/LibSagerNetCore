@@ -13,7 +13,7 @@ import (
 )
 
 type Protector interface {
-	Protect(fd int) bool
+	Protect(fd int32) bool
 }
 
 func SetProtector(protector Protector) {
@@ -71,7 +71,7 @@ func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, dest
 		return nil, err
 	}
 
-	if !dialer.protector.Protect(fd) {
+	if !dialer.protector.Protect(int32(fd)) {
 		return nil, errors.New("protect failed")
 	}
 
@@ -85,18 +85,17 @@ func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, dest
 		return nil, err
 	}
 
-	file := os.NewFile(uintptr(fd), "Socket")
+	file := os.NewFile(uintptr(fd), "socket")
 	if file == nil {
 		return nil, errors.New("failed to connect to fd")
 	}
-
-	defer safeClose(file)
 
 	conn, err := net.FileConn(file)
 	if err != nil {
 		return nil, err
 	}
 
+	_ = file.Close()
 	return conn, nil
 }
 
