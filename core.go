@@ -24,7 +24,7 @@ func SetIPv6Mode(mode int) {
 	ipv6Mode = mode
 }
 
-func IcmpPing(address string, timeout int) (int, error) {
+func IcmpPing(address string, timeout int32) (int32, error) {
 	return libping.IcmpPing(address, timeout)
 }
 
