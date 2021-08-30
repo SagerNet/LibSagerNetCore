@@ -149,6 +149,9 @@ func networkForClash(network string) clashC.NetWork {
 }
 
 func NewShadowsocksInstance(socksPort int32, server string, port int32, password string, cipher string, plugin string, pluginOpts string) (*ClashBasedInstance, error) {
+	if cipher == "none" {
+		cipher = "dummy"
+	}
 	if plugin == "obfs-local" || plugin == "simple-obfs" {
 		plugin = "obfs"
 	}
@@ -172,6 +175,9 @@ func NewShadowsocksInstance(socksPort int32, server string, port int32, password
 }
 
 func NewShadowsocksRInstance(socksPort int32, server string, port int32, password string, cipher string, obfs string, obfsParam string, protocol string, protocolParam string) (*ClashBasedInstance, error) {
+	if cipher == "none" {
+		cipher = "dummy"
+	}
 	out, err := outbound.NewShadowSocksR(outbound.ShadowSocksROption{
 		Server:        server,
 		Port:          int(port),
