@@ -1,154 +1,212 @@
 package libcore
 
 import (
-	"bytes"
+	"github.com/pkg/errors"
+	"github.com/sagernet/gomobile/asset"
+	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
+	"github.com/xjasonlyu/tun2socks/log"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/sagernet/gomobile/asset"
-	"github.com/ulikunitz/xz"
+	"strconv"
+	"sync"
 )
 
-type memReader struct {
-	file   io.ReadSeekCloser
-	reader io.ReadSeeker
-}
+const (
+	geoipDat         = "geoip.dat"
+	geositeDat       = "geosite.dat"
+	browserForwarder = "index.js"
+	geoipVersion     = "geoip.version.txt"
+	geositeVersion   = "geosite.version.txt"
+	coreVersion      = "core.version.txt"
+)
 
-func (asset memReader) Read(p []byte) (n int, err error) {
-	return asset.reader.Read(p)
-}
+var assetsPrefix string
+var internalAssetsPath string
+var externalAssetsPath string
 
-func (asset memReader) Seek(offset int64, whence int) (int64, error) {
-	return asset.reader.Seek(offset, whence)
-}
+var extracted map[string]bool
+var assetsAccess *sync.Mutex
 
-func (asset memReader) Close() error {
-	return asset.file.Close()
-}
+func InitializeV2Ray(internalAssets string, externalAssets string, prefix string) error {
+	assetsAccess = new(sync.Mutex)
+	assetsAccess.Lock()
+	extracted = make(map[string]bool)
 
-func newMemReader(file io.ReadSeekCloser) (io.ReadSeekCloser, error) {
-	reader, err := xz.NewReader(file)
-	if err != nil {
-		return nil, err
-	}
-	byteArray, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	bytesReader := bytes.NewReader(byteArray)
-	return memReader{
-		file:   file,
-		reader: bytesReader,
-	}, nil
-}
+	assetsPrefix = prefix
+	internalAssetsPath = internalAssets
+	externalAssetsPath = externalAssets
 
-type xzReader struct {
-	file   io.ReadSeekCloser
-	reader *xz.Reader
-	index  int64
-}
+	filesystem.NewFileSeeker = func(path string) (io.ReadSeekCloser, error) {
+		_, fileName := filepath.Split(path)
 
-func newXzReader(file io.ReadSeekCloser) (io.ReadSeekCloser, error) {
-	reader, err := xz.NewReader(file)
-	if err != nil {
-		return nil, err
-	}
-	return &xzReader{
-		index:  0,
-		file:   file,
-		reader: reader,
-	}, nil
-}
-
-func (asset *xzReader) Read(p []byte) (n int, err error) {
-	n, err = asset.reader.Read(p)
-	if err != nil {
-		log.Printf("xzReader read %d failed: %v", n, err)
-	} else {
-		asset.index += int64(n)
-	}
-	return
-}
-
-func (asset *xzReader) Seek(offset int64, _ int) (int64, error) {
-	if offset < 0 {
-		// recreate reader
-		_, err := asset.file.Seek(0, io.SeekStart)
-		if err != nil {
-			log.Printf("asset seek failed: %v", err)
-			return 0, err
+		if !extracted[fileName] {
+			assetsAccess.Lock()
+			assetsAccess.Unlock()
 		}
-		reader, err := xz.NewReader(asset.file)
-		if err != nil {
-			log.Printf("recreate xz reader failed: %v", err)
-			return 0, err
+
+		paths := []string{
+			internalAssetsPath + fileName,
+			externalAssetsPath + fileName,
 		}
-		asset.reader = reader
-		offset = asset.index + offset
-		asset.index = offset
-	} else {
-		asset.index += offset
-	}
 
-	return io.CopyN(io.Discard, asset.reader, offset)
-}
+		var err error
 
-func (asset *xzReader) Close() error {
-	return asset.file.Close()
-}
+		for _, path = range paths {
+			_, err = os.Stat(path)
+			if err == nil {
+				return os.Open(path)
+			}
+		}
 
-func openAssets(assetsPrefix string, path string, memReader bool) (io.ReadSeekCloser, error) {
-	_, fileName := filepath.Split(path)
-	path = geoAssetsPath + fileName
+		file, err := asset.Open(assetsPrefix + fileName)
+		if err == nil {
+			extracted[fileName] = true
+			return file, nil
+		}
 
-	_, notExistsInFileSystemError := os.Stat(path)
-	if notExistsInFileSystemError == nil {
-		log.Printf("load geo asset %s", path)
-		return os.Open(path)
-	}
-	if !os.IsNotExist(notExistsInFileSystemError) {
-		return nil, notExistsInFileSystemError
-	}
-	log.Printf("%s not found", path)
-
-	xzPath := path + ".xz"
-	_, notExistsInFileSystemError = os.Stat(xzPath)
-	if notExistsInFileSystemError == nil {
-		file, err := os.Open(xzPath)
+		err = extractAssetName(fileName, false)
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("load geo asset %s", xzPath)
-		if memReader {
-			return newMemReader(file)
-		} else {
-			return newXzReader(file)
+
+		for _, path = range paths {
+			_, err = os.Stat(path)
+			if err == nil {
+				return os.Open(path)
+			}
+			if !os.IsNotExist(err) {
+				return nil, err
+			}
 		}
-	}
-	if !os.IsNotExist(notExistsInFileSystemError) {
-		return nil, notExistsInFileSystemError
-	}
 
-	path = assetsPrefix + fileName
-
-	assetFile, err := asset.Open(path)
-	if err == nil {
-		log.Printf("load geo asset %s", path)
-		return assetFile, nil
-	}
-
-	path += ".xz"
-	assetFile, err = asset.Open(path)
-	if err != nil {
 		return nil, err
 	}
-	log.Printf("load geo asset %s", path)
-	if memReader {
-		return newMemReader(assetFile)
-	} else {
-		return newXzReader(assetFile)
+
+	filesystem.NewFileReader = func(path string) (io.ReadCloser, error) {
+		return filesystem.NewFileSeeker(path)
 	}
+
+	extract := func(name string) {
+		err := extractAssetName(name, false)
+		if err != nil {
+			log.Warnf("Extract %s failed: %v", geoipDat, err)
+		} else {
+			extracted[name] = true
+		}
+	}
+
+	go func() {
+		defer assetsAccess.Unlock()
+
+		extract(geoipDat)
+		extract(geositeDat)
+		extract(browserForwarder)
+	}()
+
+	return nil
+}
+
+func extractAssetName(name string, force bool) error {
+	var dir string
+	if name == browserForwarder {
+		dir = internalAssetsPath
+	} else {
+		dir = externalAssetsPath
+	}
+	var version string
+	switch name {
+	case geoipDat:
+		version = geoipVersion
+	case geositeDat:
+		version = geositeVersion
+	case browserForwarder:
+		version = coreVersion
+	}
+
+	var localVersion string
+	var assetVersion string
+
+	loadAssetVersion := func() error {
+		av, err := asset.Open(assetsPrefix + version)
+		if err != nil {
+			return errors.WithMessage(err, "open version in assets")
+		}
+		b, err := ioutil.ReadAll(av)
+		closeIgnore(av)
+		if err != nil {
+			return errors.WithMessage(err, "read internal version")
+		}
+		assetVersion = string(b)
+		return nil
+	}
+
+	doExtract := false
+	// check version
+	if _, nf := os.Stat(dir + version); nf != nil {
+		doExtract = true
+	}
+	if !doExtract {
+		b, err := ioutil.ReadFile(dir + version)
+		if err != nil {
+			doExtract = true
+			_ = os.RemoveAll(version)
+		} else {
+			localVersion = string(b)
+			err = loadAssetVersion()
+			if err != nil {
+				return err
+			}
+			av, err := strconv.ParseUint(assetVersion, 10, 64)
+			if err != nil {
+				doExtract = assetVersion != localVersion || force
+			} else {
+				lv, err := strconv.ParseUint(localVersion, 10, 64)
+				doExtract = err != nil || av > lv || av == lv && force
+			}
+		}
+	}
+	if doExtract {
+		if assetVersion == "" {
+			err := loadAssetVersion()
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return nil
+	}
+
+	err := extractAsset(assetsPrefix+name+".xz", dir+name)
+	if err == nil {
+		err = Unxz(dir + name)
+
+	}
+	if err != nil {
+		return err
+	}
+
+	o, err := os.Create(dir + version)
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(o, assetVersion)
+	closeIgnore(o)
+	return err
+}
+
+func extractAsset(assetPath string, path string) error {
+	i, err := asset.Open(assetPath)
+	if err != nil {
+		return err
+	}
+	defer closeIgnore(i)
+	o, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer closeIgnore(o)
+	_, err = io.Copy(o, i)
+	return err
 }

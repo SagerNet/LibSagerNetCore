@@ -2,6 +2,7 @@ package libcore
 
 import (
 	"github.com/sagernet/libping"
+	"io"
 	"os"
 	"runtime"
 )
@@ -30,4 +31,8 @@ func IcmpPing(address string, timeout int32) (int32, error) {
 
 func Gc() {
 	runtime.GC()
+}
+
+func closeIgnore(closer io.Closer) {
+	_ = closer.Close()
 }

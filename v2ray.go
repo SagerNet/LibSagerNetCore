@@ -4,33 +4,15 @@ import (
 	"errors"
 	"fmt"
 	core "github.com/v2fly/v2ray-core/v4"
-	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
-	"io"
 	"strings"
 	"sync"
 )
 
 func GetV2RayVersion() string {
 	return core.Version()
-}
-
-var geoAssetsPath string
-
-func InitializeV2Ray(assetsPath string, assetsPrefix string, memReader bool) error {
-
-	geoAssetsPath = assetsPath
-
-	filesystem.NewFileReader = func(path string) (io.ReadCloser, error) {
-		return openAssets(assetsPrefix, path, memReader)
-	}
-	filesystem.NewFileSeeker = func(path string) (io.ReadSeekCloser, error) {
-		return openAssets(assetsPrefix, path, memReader)
-	}
-
-	return nil
 }
 
 type V2RayInstance struct {
@@ -49,6 +31,24 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	defer instance.access.Unlock()
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
+		if strings.HasSuffix(err.Error(), "not found in geoip.dat") {
+			err = extractAssetName(geoipDat, true)
+			if err != nil {
+				return err
+			}
+		} else if strings.HasSuffix(err.Error(), "not found in geosite.dat") {
+			err = extractAssetName(geositeDat, true)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+
+		config, err = serial.LoadJSONConfig(strings.NewReader(content))
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	if forTest {
