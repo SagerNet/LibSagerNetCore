@@ -191,15 +191,19 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 
 	ctx := session.ContextWithInbound(context.Background(), inbound)
 
-	if !isDns && t.sniffing {
+	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
 			Enabled:      true,
-			MetadataOnly: false,
+			MetadataOnly: t.fakedns && !t.sniffing,
 		}
-		if !t.fakedns {
-			req.OverrideDestinationForProtocol = []string{"http", "tls"}
-		} else {
+		if t.sniffing && t.fakedns {
 			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
+		}
+		if t.sniffing && !t.fakedns {
+			req.OverrideDestinationForProtocol = []string{"http", "tls"}
+		}
+		if !t.sniffing && t.fakedns {
+			req.OverrideDestinationForProtocol = []string{"fakedns"}
 		}
 		ctx = session.ContextWithContent(ctx, &session.Content{
 			SniffingRequest: req,
@@ -380,18 +384,13 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 
 	ctx := session.ContextWithInbound(context.Background(), inbound)
 
-	if !isDns && t.sniffing {
-		req := session.SniffingRequest{
-			Enabled:      true,
-			MetadataOnly: false,
-		}
-		if !t.fakedns {
-			req.OverrideDestinationForProtocol = []string{"http", "tls"}
-		} else {
-			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
-		}
+	if !isDns && t.fakedns {
 		ctx = session.ContextWithContent(ctx, &session.Content{
-			SniffingRequest: req,
+			SniffingRequest: session.SniffingRequest{
+				Enabled:                        true,
+				MetadataOnly:                   t.fakedns && !t.sniffing,
+				OverrideDestinationForProtocol: []string{"fakedns"},
+			},
 		})
 	}
 
