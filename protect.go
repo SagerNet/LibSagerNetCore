@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/v2fly/v2ray-core/v4/common/net"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"golang.org/x/sys/unix"
+	"net"
 	"os"
 	"time"
 )
@@ -19,7 +19,8 @@ type Protector interface {
 func SetProtector(protector Protector) {
 	internet.UseAlternativeSystemDialer(protectedDialer{
 		protector: protector,
-		resolver:  &net.Resolver{PreferGo: false},
+		//resolver:  &net.Resolver{PreferGo: false},
+		resolver: net.DefaultResolver,
 	})
 }
 
@@ -28,7 +29,7 @@ type protectedDialer struct {
 	resolver  *net.Resolver
 }
 
-func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, destination net.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
+func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -99,13 +100,13 @@ func (dialer protectedDialer) Dial(ctx context.Context, source net.Address, dest
 	return conn, nil
 }
 
-func getFd(network net.Network) (fd int, err error) {
+func getFd(network v2rayNet.Network) (fd int, err error) {
 	switch network {
-	case net.Network_TCP:
+	case v2rayNet.Network_TCP:
 		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_STREAM, unix.IPPROTO_TCP)
-	case net.Network_UDP:
+	case v2rayNet.Network_UDP:
 		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
-	case net.Network_UNIX:
+	case v2rayNet.Network_UNIX:
 		fd, err = unix.Socket(unix.AF_UNIX, unix.SOCK_STREAM, 0)
 	default:
 		err = fmt.Errorf("unknow network")
