@@ -13,7 +13,9 @@ require (
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v4 v4.41.1
 	github.com/xjasonlyu/tun2socks v1.18.4-0.20210821024837-525d424fca52
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
+
 )
 
 replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210831005424-526426cf4a32

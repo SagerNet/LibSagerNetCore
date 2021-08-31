@@ -68,6 +68,10 @@ func (s *ClashBasedInstance) Close() error {
 		return errors.New("not started")
 	}
 
+	if closer, ok := s.out.(io.Closer); ok {
+		closeIgnore(closer)
+	}
+
 	err := s.in.Close()
 	if err != nil {
 		return err
