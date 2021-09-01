@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"golang.org/x/sys/unix"
 	"net"
@@ -36,41 +37,36 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	host, port, err := net.SplitHostPort(destination.NetAddr())
-	if err != nil {
-		return nil, err
-	}
+	var destIp net.IP
+	if destination.Address.Family().IsIP() {
+		destIp = destination.Address.IP()
+	} else {
+		addresses, err := dialer.resolver.LookupIPAddr(ctx, destination.Address.Domain())
+		if err == nil && len(addresses) == 0 {
+			err = dns.ErrEmptyResponse
+		}
+		if err != nil {
+			return nil, err
+		}
 
-	portNum, err := dialer.resolver.LookupPort(ctx, "tcp", port)
-	if err != nil {
-		return nil, err
-	}
+		if ipv6Mode == 3 {
+			// ipv6 only
 
-	addresses, err := dialer.resolver.LookupIPAddr(ctx, host)
-	if err == nil && len(addresses) == 0 {
-		err = errors.New("NXDOMAIN")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var destIp *net.IP
-	if ipv6Mode == 3 {
-		// ipv6 only
-
-		for _, addr := range addresses {
-			v2Addr := v2rayNet.ParseAddress(addr.String())
-			if v2Addr.Family().IsIPv6() {
-				destIp = &addr.IP
-				break
+			for _, addr := range addresses {
+				v2Addr := v2rayNet.ParseAddress(addr.String())
+				if v2Addr.Family().IsIPv6() {
+					destIp = addr.IP
+					break
+				}
 			}
 		}
-	}
-	if destIp == nil {
-		destIp = &addresses[0].IP
+		if destIp == nil {
+			destIp = addresses[0].IP
+		}
 	}
 
-	fd, err := getFd(destination.Network)
+	ipv6 := len(destIp) != net.IPv4len
+	fd, err := getFd(destination.Network, ipv6)
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +75,22 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 		return nil, errors.New("protect failed")
 	}
 
-	socketAddress := &unix.SockaddrInet6{
-		Port: portNum,
+	var sockaddr unix.Sockaddr
+	if !ipv6 {
+		socketAddress := &unix.SockaddrInet4{
+			Port: int(destination.Port),
+		}
+		copy(socketAddress.Addr[:], destIp)
+		sockaddr = socketAddress
+	} else {
+		socketAddress := &unix.SockaddrInet6{
+			Port: int(destination.Port),
+		}
+		copy(socketAddress.Addr[:], destIp)
+		sockaddr = socketAddress
 	}
-	copy(socketAddress.Addr[:], *destIp)
 
-	err = unix.Connect(fd, socketAddress)
+	err = unix.Connect(fd, sockaddr)
 	if err != nil {
 		return nil, err
 	}
@@ -103,14 +109,20 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 	return conn, nil
 }
 
-func getFd(network v2rayNet.Network) (fd int, err error) {
+func getFd(network v2rayNet.Network, ipv6 bool) (fd int, err error) {
+	var af int
+	if !ipv6 {
+		af = unix.AF_INET
+	} else {
+		af = unix.AF_INET6
+	}
 	switch network {
 	case v2rayNet.Network_TCP:
-		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_STREAM, unix.IPPROTO_TCP)
+		fd, err = unix.Socket(af, unix.SOCK_STREAM, unix.IPPROTO_TCP)
 	case v2rayNet.Network_UDP:
-		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
+		fd, err = unix.Socket(af, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
 	case v2rayNet.Network_UNIX:
-		fd, err = unix.Socket(unix.AF_UNIX, unix.SOCK_STREAM, 0)
+		fd, err = unix.Socket(af, unix.SOCK_STREAM, 0)
 	default:
 		err = fmt.Errorf("unknow network")
 	}
