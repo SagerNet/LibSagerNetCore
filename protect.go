@@ -19,8 +19,11 @@ type Protector interface {
 func SetProtector(protector Protector) {
 	internet.UseAlternativeSystemDialer(protectedDialer{
 		protector: protector,
-		//resolver:  &net.Resolver{PreferGo: false},
-		resolver: net.DefaultResolver,
+		resolver:  net.DefaultResolver,
+	})
+	internet.UseAlternativeSystemDNSDialer(protectedDialer{
+		protector: protector,
+		resolver:  &net.Resolver{PreferGo: false},
 	})
 }
 

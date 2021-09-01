@@ -18,6 +18,6 @@ require (
 
 )
 
-replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210831005424-526426cf4a32
+replace github.com/v2fly/v2ray-core/v4 v4.41.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210901013740-876b73a4ab90
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/ClashDotNetFramework/experimental-clash v1.7.2
