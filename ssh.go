@@ -144,7 +144,10 @@ func NewSSHInstance(socksPort int32, serverAddress string, serverPort int32, use
 	if keys != nil {
 		out.hostKeyCallback = (&fixedHostKey{keys}).check
 	} else {
-		out.hostKeyCallback = ssh.InsecureIgnoreHostKey()
+		out.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			log.Infof("ssh: server send %s %s", key.Type(), base64Encode(key.Marshal()))
+			return nil
+		}
 	}
 	return newClashBasedInstance(socksPort, out), nil
 }
