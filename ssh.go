@@ -13,18 +13,17 @@ import (
 	"golang.org/x/crypto/ssh"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 )
 
 type sshClient struct {
 	*outbound.Base
-	access     sync.Mutex
-	client     *ssh.Client
-	username   string
-	auth       int32
-	password   string
-	publicKey  ssh.PublicKey
-	privateKey ssh.Signer
+	access          sync.Mutex
+	client          *ssh.Client
+	username        string
+	auth            []ssh.AuthMethod
+	hostKeyCallback ssh.HostKeyCallback
 }
 
 func (s *sshClient) Close() error {
@@ -51,26 +50,12 @@ func (s *sshClient) connect() (*ssh.Client, error) {
 	}
 
 	config := &ssh.ClientConfig{
-		User: s.username,
+		User:            s.username,
+		Auth:            s.auth,
+		HostKeyCallback: s.hostKeyCallback,
 	}
 
-	if s.auth == 1 {
-		config.Auth = []ssh.AuthMethod{ssh.Password(s.password)}
-	} else if s.auth == 2 {
-		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(s.privateKey)}
-	}
-
-	if s.publicKey == nil {
-		config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	} else {
-		config.HostKeyCallback = (&fixedHostKey{s.publicKey}).check
-	}
-
-	if s.publicKey != nil {
-		config.HostKeyAlgorithms = []string{s.publicKey.Type()}
-	}
-
-	log.Debugf("ssh dial to %s", s.Addr())
+	log.Debugf("SSH dial to %s", s.Addr())
 
 	client, err := ssh.Dial("tcp", s.Addr(), config)
 	if err != nil {
@@ -79,11 +64,11 @@ func (s *sshClient) connect() (*ssh.Client, error) {
 		return nil, err
 	}
 
-	log.Debugf("ssh conn success")
+	log.Debugf("SSH conn success")
 
 	go func() {
 		err := client.Wait()
-		log.Debugf("ssh connection closed: %v", err)
+		log.Debugf("SSH connection closed: %v", err)
 		s.client = nil
 	}()
 
@@ -117,15 +102,16 @@ const (
 
 func NewSSHInstance(socksPort int32, serverAddress string, serverPort int32, username string, auth int32, password string, pem string, passphrase string, pubKey string) (*ClashBasedInstance, error) {
 	addr := net.JoinHostPort(serverAddress, strconv.Itoa(int(serverPort)))
+	if username == "" {
+		username = "root"
+	}
 	out := &sshClient{
 		Base:     outbound.NewBase("", addr, -1, false),
 		username: username,
-		auth:     auth,
-		password: password,
 	}
 	switch auth {
 	case authTypePassword:
-		out.password = password
+		out.auth = []ssh.AuthMethod{ssh.Password(password)}
 	case authTypePublicKey:
 		var signer ssh.Signer
 		var err error
@@ -137,32 +123,46 @@ func NewSSHInstance(socksPort int32, serverAddress string, serverPort int32, use
 		if err != nil {
 			return nil, errors.WithMessage(err, "parse private key")
 		}
-		out.privateKey = signer
+		out.auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	}
+	var keys []ssh.PublicKey
 	if pubKey != "" {
-		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-		if err != nil {
-			if err != nil {
-				return nil, errors.WithMessage(err, "parse public key")
+		for _, str := range strings.Split(pubKey, "\n") {
+			str = strings.TrimSpace(str)
+			if str == "" {
+				continue
 			}
+			key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
+			if err != nil {
+				if err != nil {
+					return nil, errors.WithMessage(err, "parse public key")
+				}
+			}
+			keys = append(keys, key)
 		}
-		out.publicKey = key
+	}
+	if keys != nil {
+		out.hostKeyCallback = (&fixedHostKey{keys}).check
+	} else {
+		out.hostKeyCallback = ssh.InsecureIgnoreHostKey()
 	}
 	return newClashBasedInstance(socksPort, out), nil
 }
 
 type fixedHostKey struct {
-	key ssh.PublicKey
+	keys []ssh.PublicKey
 }
 
 func (f *fixedHostKey) check(_ string, _ net.Addr, key ssh.PublicKey) error {
-	if f.key == nil {
+	if f.keys == nil {
 		return fmt.Errorf("ssh: required host key was nil")
 	}
-	if !bytes.Equal(key.Marshal(), f.key.Marshal()) {
-		return fmt.Errorf("ssh: host key mismatch, server send %s %s", key.Type(), base64Encode(key.Marshal()))
+	for _, pk := range f.keys {
+		if bytes.Equal(key.Marshal(), pk.Marshal()) {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("ssh: host key mismatch, server send %s %s", key.Type(), base64Encode(key.Marshal()))
 }
 
 func base64Encode(data []byte) string {
