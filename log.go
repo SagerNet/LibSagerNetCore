@@ -79,8 +79,25 @@ type v2rayLogWriter struct {
 }
 
 func (w *v2rayLogWriter) Write(s string) error {
-	str := C.CString(s)
-	C.__android_log_write(C.ANDROID_LOG_DEBUG, tagV2Ray, str)
+
+	var priority C.int
+	if strings.Contains(s, "[Debug]") {
+		s = strings.Replace(s, "[Debug]", "", 1)
+	} else if strings.Contains(s, "[Info]") {
+		s = strings.Replace(s, "[Info]", "", 1)
+		priority = C.ANDROID_LOG_INFO
+	} else if strings.Contains(s, "[Warn]") {
+		s = strings.Replace(s, "[Warn]", "", 1)
+		priority = C.ANDROID_LOG_WARN
+	} else if strings.Contains(s, "[Error]") {
+		s = strings.Replace(s, "[Error]", "", 1)
+		priority = C.ANDROID_LOG_ERROR
+	} else {
+		priority = C.ANDROID_LOG_DEBUG
+	}
+
+	str := C.CString(strings.TrimSpace(s))
+	C.__android_log_write(priority, tagV2Ray, str)
 	C.free(unsafe.Pointer(str))
 	return nil
 }
