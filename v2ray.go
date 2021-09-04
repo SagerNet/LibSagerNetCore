@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/features/extension"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
@@ -20,6 +21,7 @@ type V2RayInstance struct {
 	started      bool
 	core         *core.Instance
 	statsManager stats.Manager
+	observatory  extension.Observatory
 }
 
 func NewV2rayInstance() *V2RayInstance {
@@ -61,6 +63,10 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	}
 	instance.core = c
 	instance.statsManager = c.GetFeature(stats.ManagerType()).(stats.Manager)
+	observatory := c.GetFeature(extension.ObservatoryType())
+	if observatory != nil {
+		instance.observatory = observatory.(extension.Observatory)
+	}
 	return nil
 }
 
