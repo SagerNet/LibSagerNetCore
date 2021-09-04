@@ -72,10 +72,7 @@ func (s *ClashBasedInstance) Close() error {
 		closeIgnore(closer)
 	}
 
-	err := s.in.Close()
-	if err != nil {
-		return err
-	}
+	s.in.Close()
 	close(s.ctx)
 	return nil
 }
