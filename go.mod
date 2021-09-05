@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/miekg/dns v1.1.43
 	github.com/pkg/errors v0.9.1
-	github.com/sagernet/gomobile v0.0.0-20210822074701-68a55075c7d2
+	github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
 	github.com/sirupsen/logrus v1.8.1
@@ -19,4 +19,4 @@ require (
 
 )
 
-replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210905025330-3333b2a720ac
+replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210905032340-2639850443bc
