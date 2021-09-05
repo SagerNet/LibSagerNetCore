@@ -1,19 +1,17 @@
 package libcore
 
 import (
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
 
-func (instance *V2RayInstance) GetObservatoryStatus() (string, error) {
+func (instance *V2RayInstance) GetObservatoryStatus() ([]byte, error) {
 	if instance.observatory == nil {
-		return "", errors.New("observatory unavailable")
+		return nil, errors.New("observatory unavailable")
 	}
 	resp, err := instance.observatory.GetObservation(nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return (&jsonpb.Marshaler{
-		EmitDefaults: true,
-	}).MarshalToString(resp)
+	return proto.Marshal(resp)
 }

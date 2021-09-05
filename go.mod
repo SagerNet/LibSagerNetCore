@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Dreamacro/clash v1.6.5
-	github.com/gogo/protobuf v1.3.2
+	github.com/golang/protobuf v1.5.2
 	github.com/miekg/dns v1.1.43
 	github.com/pkg/errors v0.9.1
 	github.com/sagernet/gomobile v0.0.0-20210822074701-68a55075c7d2
