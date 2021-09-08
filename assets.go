@@ -26,10 +26,15 @@ var assetsPrefix string
 var internalAssetsPath string
 var externalAssetsPath string
 
+var useOfficialAssets bool
 var extracted map[string]bool
 var assetsAccess *sync.Mutex
 
-func InitializeV2Ray(internalAssets string, externalAssets string, prefix string) error {
+type BoolFunc interface {
+	Invoke() bool
+}
+
+func InitializeV2Ray(internalAssets string, externalAssets string, prefix string, useOfficial BoolFunc) error {
 	assetsAccess = new(sync.Mutex)
 	assetsAccess.Lock()
 	extracted = make(map[string]bool)
@@ -99,6 +104,7 @@ func InitializeV2Ray(internalAssets string, externalAssets string, prefix string
 
 	go func() {
 		defer assetsAccess.Unlock()
+		useOfficialAssets = useOfficial.Invoke()
 
 		extract(geoipDat)
 		extract(geositeDat)
@@ -143,11 +149,13 @@ func extractAssetName(name string, force bool) error {
 	}
 
 	doExtract := false
+
 	// check version
-	if _, nf := os.Stat(dir + version); nf != nil {
-		doExtract = true
-	}
-	if !doExtract {
+
+	if _, versionNotFoundError := os.Stat(dir + version); versionNotFoundError != nil {
+		_, assetNotFoundError := os.Stat(dir + name)
+		doExtract = assetNotFoundError != nil || force
+	} else if useOfficialAssets {
 		b, err := ioutil.ReadFile(dir + version)
 		if err != nil {
 			doExtract = true
@@ -166,7 +174,10 @@ func extractAssetName(name string, force bool) error {
 				doExtract = err != nil || av > lv || force
 			}
 		}
+	} else {
+		doExtract = force
 	}
+
 	if doExtract {
 		if assetVersion == "" {
 			err := loadAssetVersion()
@@ -208,5 +219,8 @@ func extractAsset(assetPath string, path string) error {
 	}
 	defer closeIgnore(o)
 	_, err = io.Copy(o, i)
+	if err == nil {
+		log.Debugf("Extract >> %s", path)
+	}
 	return err
 }
