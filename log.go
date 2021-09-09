@@ -1,3 +1,6 @@
+//go:build android
+// +build android
+
 package libcore
 
 /*
@@ -115,7 +118,7 @@ func (stdLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func initLog() {
+func init() {
 	log.SetOutput(stdLogWriter{})
 	log.SetFlags(log.Flags() &^ log.LstdFlags)
 	logrus.SetFormatter(&androidFormatter{})

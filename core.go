@@ -7,10 +7,6 @@ import (
 	"runtime"
 )
 
-func init() {
-	initLog()
-}
-
 func Setenv(key, value string) error {
 	return os.Setenv(key, value)
 }
