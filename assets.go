@@ -3,8 +3,8 @@ package libcore
 import (
 	"github.com/pkg/errors"
 	"github.com/sagernet/gomobile/asset"
+	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
-	"github.com/xjasonlyu/tun2socks/log"
 	"io"
 	"io/ioutil"
 	"os"
@@ -96,7 +96,7 @@ func InitializeV2Ray(internalAssets string, externalAssets string, prefix string
 	extract := func(name string) {
 		err := extractAssetName(name, false)
 		if err != nil {
-			log.Warnf("Extract %s failed: %v", geoipDat, err)
+			logrus.Warnf("Extract %s failed: %v", geoipDat, err)
 		} else {
 			extracted[name] = true
 		}
@@ -220,7 +220,7 @@ func extractAsset(assetPath string, path string) error {
 	defer closeIgnore(o)
 	_, err = io.Copy(o, i)
 	if err == nil {
-		log.Debugf("Extract >> %s", path)
+		logrus.Debugf("Extract >> %s", path)
 	}
 	return err
 }

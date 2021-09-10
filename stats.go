@@ -38,11 +38,11 @@ type TrafficListener interface {
 	UpdateStats(t *AppStats)
 }
 
-func (t *Tun2socks) GetTrafficStatsEnabled() bool {
+func (t *Tun2ray) GetTrafficStatsEnabled() bool {
 	return t.trafficStats
 }
 
-func (t *Tun2socks) ResetAppTraffics() {
+func (t *Tun2ray) ResetAppTraffics() {
 	if !t.trafficStats {
 		return
 	}
@@ -64,7 +64,7 @@ func (t *Tun2socks) ResetAppTraffics() {
 	t.access.Unlock()
 }
 
-func (t *Tun2socks) ReadAppTraffics(listener TrafficListener) error {
+func (t *Tun2ray) ReadAppTraffics(listener TrafficListener) error {
 	if !t.trafficStats {
 		return nil
 	}

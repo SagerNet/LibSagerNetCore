@@ -13,10 +13,14 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v4 v4.42.1
-	github.com/xjasonlyu/tun2socks v1.18.4
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
+	gvisor.dev/gvisor v0.0.0
 )
+
+replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
+
+replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210908033712-ef682c9555b3
 
 require (
 	github.com/Dreamacro/go-shadowsocks2 v0.1.7 // indirect
@@ -54,11 +58,4 @@ require (
 	google.golang.org/grpc v1.40.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gvisor.dev/gvisor v0.0.0 // indirect
 )
-
-replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
-
-replace github.com/xjasonlyu/tun2socks v1.18.4 => github.com/sagernet/tun2socks v1.18.4-0.20210910000841-333449626ffd
-
-replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210908033712-ef682c9555b3

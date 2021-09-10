@@ -3,7 +3,7 @@ package libcore
 import (
 	"errors"
 	"github.com/sagernet/sagerconnect/api"
-	"github.com/xjasonlyu/tun2socks/log"
+	"github.com/sirupsen/logrus"
 	"net"
 	"strings"
 	"sync"
@@ -75,33 +75,33 @@ func (i *ApiInstance) loop() {
 			if err != nil && strings.Contains(err.Error(), "upgrade") {
 				message, err := api.MakeResponse(&api.Response{Version: api.Version, DeviceName: "", SocksPort: 0, DnsPort: 0, Debug: false, BypassLan: false})
 				if err != nil {
-					log.Warnf("api: make response error: %v", err)
+					logrus.Warnf("api: make response error: %v", err)
 					continue
 				}
 
 				_, err = i.conn.WriteTo(message, addr)
 				if err != nil {
-					log.Warnf("api: send response error: %v", err)
+					logrus.Warnf("api: send response error: %v", err)
 					continue
 				}
 
 			}
-			log.Warnf("api: parse error: %v", err)
+			logrus.Warnf("api: parse error: %v", err)
 			continue
 		}
 
-		log.Infof("api: new query from %s (%s)", query.DeviceName, addr.String())
+		logrus.Infof("api: new query from %s (%s)", query.DeviceName, addr.String())
 
 		response := api.Response{Version: api.Version, DeviceName: i.deviceName, SocksPort: uint16(i.socksPort), DnsPort: uint16(i.dnsPort), Debug: i.debug, BypassLan: i.bypassLan}
 		message, err := api.MakeResponse(&response)
 		if err != nil {
-			log.Warnf("api: make response error: %v", err)
+			logrus.Warnf("api: make response error: %v", err)
 			continue
 		}
 
 		_, err = i.conn.WriteTo(message, addr)
 		if err != nil {
-			log.Warnf("api: send response error: %v", err)
+			logrus.Warnf("api: send response error: %v", err)
 			continue
 		}
 	}

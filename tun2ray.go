@@ -3,30 +3,29 @@ package libcore
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/Dreamacro/clash/common/pool"
 	"github.com/miekg/dns"
+	"github.com/sirupsen/logrus"
 	v2rayCore "github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
-	"github.com/xjasonlyu/tun2socks/core"
-	"github.com/xjasonlyu/tun2socks/core/device/rwbased"
-	"github.com/xjasonlyu/tun2socks/core/stack"
-	"github.com/xjasonlyu/tun2socks/log"
 	"io"
+	"libcore/gvisor"
+	"libcore/lwip"
+	"libcore/tun"
 	"net"
 	"os"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-type Tun2socks struct {
+var _ tun.Handler = (*Tun2ray)(nil)
+
+type Tun2ray struct {
 	access    sync.Mutex
-	stack     *stack.Stack
-	device    *rwbased.Endpoint
+	dev       tun.Tun
 	router    string
 	hijackDns bool
 	v2ray     *V2RayInstance
@@ -40,45 +39,22 @@ type Tun2socks struct {
 	appStats     map[uint16]*appStats
 }
 
-var uidDumper UidDumper
-
-type UidInfo struct {
-	PackageName string
-	Label       string
-}
-
-type UidDumper interface {
-	DumpUid(ipv6 bool, udp bool, srcIp string, srcPort int32, destIp string, destPort int32) (int32, error)
-	GetUidInfo(uid int32) (*UidInfo, error)
-}
-
-func SetUidDumper(dumper UidDumper) {
-	uidDumper = dumper
-}
-
-var foregroundUid uint16
-
-func SetForegroundUid(uid int32) {
-	foregroundUid = uint16(uid)
-}
-
-var foregroundImeUid uint16
-
-func SetForegroundImeUid(uid int32) {
-	foregroundImeUid = uint16(uid)
-}
-
 const (
 	appStatusForeground = "foreground"
 	appStatusBackground = "background"
 )
 
-func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2socks, error) {
+func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
 	file := os.NewFile(uintptr(fd), "")
 	if file == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
 	}
-	tun := &Tun2socks{
+	if debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.WarnLevel)
+	}
+	t := &Tun2ray{
 		router:       router,
 		hijackDns:    hijackDns,
 		v2ray:        v2ray,
@@ -91,66 +67,40 @@ func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, hija
 	}
 
 	if trafficStats {
-		tun.appStats = map[uint16]*appStats{}
+		t.appStats = map[uint16]*appStats{}
 	}
+	var dev tun.Tun
+	var err error
 
-	d, err := rwbased.New(file, uint32(mtu))
+	if gVisor {
+		dev, err = gvisor.New(fd, mtu, gvisor.DefaultNIC, t)
+	} else {
+		dev, err = lwip.New(fd, mtu, t)
+	}
 	if err != nil {
 		return nil, err
 	}
-	tun.device = d
+	t.dev = dev
 
-	s, err := stack.New(d, tun, stack.WithDefault())
-	tun.stack = s
-
-	if debug {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.WarnLevel)
-	}
-
-	net.DefaultResolver.Dial = tun.dialDNS
-	return tun, nil
+	net.DefaultResolver.Dial = t.dialDNS
+	return t, nil
 }
 
-func (t *Tun2socks) Close() {
+func (t *Tun2ray) Close() {
 	t.access.Lock()
 	defer t.access.Unlock()
 
 	net.DefaultResolver.Dial = nil
-	t.stack.Close()
+	closeIgnore(t.dev)
 }
 
-func (t *Tun2socks) Add(conn core.TCPConn) {
-	id := conn.ID()
-
-	la := fmt.Sprintf("tcp:%s", net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort))))
-	src, err := v2rayNet.ParseDestination(la)
-	if err != nil {
-		log.Errorf("[TCP] parse source address %s failed: %s", la, err.Error())
-		return
-	}
-	if src.Address.Family().IsDomain() {
-		log.Errorf("[TCP] conn with domain src %s received: %s", la, err.Error())
-		return
-	}
-	da := fmt.Sprintf("tcp:%s", net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort))))
-	dest, err := v2rayNet.ParseDestination(da)
-	if err != nil {
-		log.Errorf("[TCP] parse destination address %s failed: %s", da, err.Error())
-		return
-	}
-	if dest.Address.Family().IsDomain() {
-		log.Errorf("[TCP] conn with domain destination %s received: %s", da, err.Error())
-		return
-	}
-
+func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNet.Destination, conn net.Conn) {
 	inbound := &session.Inbound{
-		Source: src,
+		Source: source,
 		Tag:    "socks",
 	}
 
-	isDns := dest.Address.String() == t.router || dest.Port == 53
+	isDns := destination.Address.String() == t.router || destination.Port == 53
 	if isDns {
 		inbound.Tag = "dns-in"
 	}
@@ -159,7 +109,7 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 	var self bool
 
 	if t.dumpUid || t.trafficStats {
-		u, err := uidDumper.DumpUid(dest.Address.Family().IsIPv6(), false, src.Address.IP().String(), int32(src.Port), dest.Address.IP().String(), int32(dest.Port))
+		u, err := uidDumper.DumpUid(destination.Address.Family().IsIPv6(), false, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 		if err == nil {
 			uid = uint16(u)
 			var info *UidInfo
@@ -169,9 +119,9 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 					info, _ = uidDumper.GetUidInfo(int32(uid))
 				}
 				if info == nil {
-					log.Infof("[TCP] %s ==> %s", src.NetAddr(), dest.NetAddr())
+					logrus.Infof("[TCP] %s ==> %s", source.NetAddr(), destination.NetAddr())
 				} else {
-					log.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
+					logrus.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, source.NetAddr(), destination.NetAddr())
 				}
 			}
 
@@ -210,10 +160,10 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 		})
 	}
 
-	destConn, err := v2rayCore.Dial(ctx, t.v2ray.core, dest)
+	destConn, err := v2rayCore.Dial(ctx, t.v2ray.core, destination)
 
 	if err != nil {
-		log.Errorf("[TCP] dial failed: %s", err.Error())
+		logrus.Errorf("[TCP] dial failed: %s", err.Error())
 		return
 	}
 
@@ -254,53 +204,22 @@ func (t *Tun2socks) Add(conn core.TCPConn) {
 	_ = destConn.Close()
 }
 
-func (t *Tun2socks) AddPacket(packet core.UDPPacket) {
-	go t.addPacket(packet)
-}
+func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error)) {
+	natKey := source.NetAddr()
 
-func (t *Tun2socks) addPacket(packet core.UDPPacket) {
-	id := packet.ID()
-	la := fmt.Sprintf("udp:%s", net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort))))
-	src, err := v2rayNet.ParseDestination(la)
-	if err != nil {
-		log.Errorf("[UDP] parse source address %s failed: %s", la, err.Error())
-		return
-	}
-	if src.Address.Family().IsDomain() {
-		log.Errorf("[UDP] conn with domain src %s received: %s", la, err.Error())
-		return
-	}
-	da := fmt.Sprintf("udp:%s", net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort))))
-	dest, err := v2rayNet.ParseDestination(da)
-	if err != nil {
-		log.Errorf("[UDP] parse destination address %s failed: %s", da, err.Error())
-		return
-	}
-	if dest.Address.Family().IsDomain() {
-		log.Errorf("[UDP] conn with domain destination %s received: %s", da, err.Error())
-		return
-	}
-
-	natKey := src.NetAddr()
-
-	sendTo := func(drop bool) bool {
+	sendTo := func() bool {
 		conn := t.udpTable.Get(natKey)
 		if conn == nil {
 			return false
 		}
-
-		if drop {
-			defer packet.Drop()
-		}
-
-		_, err := conn.Write(packet.Data())
+		_, err := conn.Write(data)
 		if err != nil {
 			_ = conn.Close()
 		}
 		return true
 	}
 
-	if sendTo(true) {
+	if sendTo() {
 		return
 	}
 
@@ -309,7 +228,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	if loaded {
 		cond.L.Lock()
 		cond.Wait()
-		sendTo(true)
+		sendTo()
 		cond.L.Unlock()
 		return
 	}
@@ -317,18 +236,15 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 	t.udpTable.Delete(lockKey)
 	cond.Broadcast()
 
-	srcIp := src.Address.IP()
-	dstIp := dest.Address.IP()
-
 	inbound := &session.Inbound{
-		Source: src,
+		Source: source,
 		Tag:    "socks",
 	}
-	isDns := dest.Address.String() == t.router
+	isDns := destination.Address.String() == t.router
 
 	if !isDns && t.hijackDns {
 		dnsMsg := dns.Msg{}
-		err := dnsMsg.Unpack(packet.Data())
+		err := dnsMsg.Unpack(data)
 		if err == nil && !dnsMsg.Response && len(dnsMsg.Question) > 0 {
 			isDns = true
 		}
@@ -343,7 +259,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 
 	if t.dumpUid || t.trafficStats {
 
-		u, err := uidDumper.DumpUid(srcIp.To4() == nil, true, srcIp.String(), int32(src.Port), dstIp.String(), int32(dest.Port))
+		u, err := uidDumper.DumpUid(source.Address.Family().IsIPv6(), true, source.Address.String(), int32(source.Port), destination.Address.String(), int32(destination.Port))
 		if err == nil {
 			uid = uint16(u)
 			var info *UidInfo
@@ -361,9 +277,9 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 				}
 
 				if info == nil {
-					log.Infof("[%s] %s ==> %s", tag, src.NetAddr(), dest.NetAddr())
+					logrus.Infof("[%s] %s ==> %s", tag, source.NetAddr(), destination.NetAddr())
 				} else {
-					log.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, src.NetAddr(), dest.NetAddr())
+					logrus.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, source.NetAddr(), destination.NetAddr())
 				}
 			}
 
@@ -394,10 +310,10 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		})
 	}
 
-	conn, err := v2rayCore.Dial(ctx, t.v2ray.core, dest)
+	conn, err := v2rayCore.Dial(ctx, t.v2ray.core, destination)
 
 	if err != nil {
-		log.Errorf("[UDP] dial failed: %s", err.Error())
+		logrus.Errorf("[UDP] dial failed: %s", err.Error())
 		return
 	}
 
@@ -426,7 +342,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 
 	t.udpTable.Set(natKey, conn)
 
-	go sendTo(false)
+	go sendTo()
 
 	buf := pool.Get(pool.RelayBufferSize)
 
@@ -435,7 +351,7 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 		if err != nil {
 			break
 		}
-		_, err = packet.WriteBack(buf[:n], nil)
+		_, err = writeBack(buf[:n], nil)
 		if err != nil {
 			break
 		}
@@ -445,11 +361,10 @@ func (t *Tun2socks) addPacket(packet core.UDPPacket) {
 
 	_ = pool.Put(buf)
 	_ = conn.Close()
-	packet.Drop()
 	t.udpTable.Delete(natKey)
 }
 
-func (t *Tun2socks) dialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
+func (t *Tun2ray) dialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
 	conn, err := v2rayCore.Dial(session.ContextWithInbound(ctx, &session.Inbound{
 		Tag: "dns-in",
 	}), t.v2ray.core, v2rayNet.Destination{

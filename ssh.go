@@ -9,7 +9,7 @@ import (
 	"github.com/Dreamacro/clash/adapter/outbound"
 	clashC "github.com/Dreamacro/clash/constant"
 	"github.com/pkg/errors"
-	"github.com/xjasonlyu/tun2socks/log"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"net"
 	"strconv"
@@ -55,20 +55,20 @@ func (s *sshClient) connect() (*ssh.Client, error) {
 		HostKeyCallback: s.hostKeyCallback,
 	}
 
-	log.Debugf("SSH dial to %s", s.Addr())
+	logrus.Debug("SSH dial to %s", s.Addr())
 
 	client, err := ssh.Dial("tcp", s.Addr(), config)
 	if err != nil {
 		err = errors.WithMessage(err, "connect ssh")
-		log.Warnf("%v", err)
+		logrus.Warnf("%v", err)
 		return nil, err
 	}
 
-	log.Debugf("SSH conn success")
+	logrus.Debug("SSH conn success")
 
 	go func() {
 		err := client.Wait()
-		log.Debugf("SSH connection closed: %v", err)
+		logrus.Debug("SSH connection closed: %v", err)
 		s.client = nil
 	}()
 
@@ -84,7 +84,7 @@ func (s *sshClient) DialContext(_ context.Context, metadata *clashC.Metadata) (_
 	c, err := client.Dial(metadata.NetWork.String(), metadata.RemoteAddress())
 	if err != nil {
 		err = fmt.Errorf("%s connect error: %w", s.Addr(), err)
-		log.Warnf("%v", err)
+		logrus.Warn("%v", err)
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func NewSSHInstance(socksPort int32, serverAddress string, serverPort int32, use
 		out.hostKeyCallback = (&fixedHostKey{keys}).check
 	} else {
 		out.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			log.Infof("ssh: server send %s %s", key.Type(), base64Encode(key.Marshal()))
+			logrus.Infof("ssh: server send %s %s", key.Type(), base64Encode(key.Marshal()))
 			return nil
 		}
 	}

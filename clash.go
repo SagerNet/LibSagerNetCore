@@ -9,9 +9,9 @@ import (
 	clashC "github.com/Dreamacro/clash/constant"
 	"github.com/Dreamacro/clash/listener/socks"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -146,7 +146,7 @@ func networkForClash(network string) clashC.NetWork {
 	case "udp", "udp4", "udp6":
 		return clashC.UDP
 	}
-	log.Fatalln("unexpected network name", network)
+	logrus.Fatalln("unexpected network name", network)
 	return 0
 }
 
