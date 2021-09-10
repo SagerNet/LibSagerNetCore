@@ -11,9 +11,9 @@ import (
 )
 
 func gTcpHandler(s *stack.Stack, handler tun.Handler) {
-	forwarder := tcp.NewForwarder(s, 0, 0, func(request *tcp.ForwarderRequest) {
+	forwarder := tcp.NewForwarder(s, 0, 2<<10, func(request *tcp.ForwarderRequest) {
 		id := request.ID()
-		waitQueue := &waiter.Queue{}
+		waitQueue := new(waiter.Queue)
 		endpoint, err := request.CreateEndpoint(waitQueue)
 		if err != nil {
 			// prevent potential half-open TCP connection leak.

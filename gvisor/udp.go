@@ -21,6 +21,9 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			return true
 		}
 
+		src, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", id.RemoteAddress.String(), ":", id.RemotePort))
+		dst, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", id.LocalAddress.String(), ":", id.LocalPort))
+		data := buffer.Data().ExtractVV()
 		packet := &gUdpPacket{
 			s:        s,
 			id:       &id,
@@ -28,10 +31,6 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			netHdr:   buffer.Network(),
 			netProto: buffer.NetworkProtocolNumber,
 		}
-
-		data := buffer.Data().ExtractVV()
-		src, _ := v2rayNet.ParseDestination(fmt.Sprint("tcp:", id.RemoteAddress.String(), ":", id.RemotePort))
-		dst, _ := v2rayNet.ParseDestination(fmt.Sprint("tcp:", id.LocalAddress.String(), ":", id.LocalPort))
 		go handler.NewPacket(src, dst, data.ToView(), packet.WriteBack)
 		return true
 	})

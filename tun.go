@@ -44,11 +44,20 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
-	file := os.NewFile(uintptr(fd), "")
-	if file == nil {
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
+	/*	if fd < 0 {
+			return nil, errors.New("must provide a valid TUN file descriptor")
+		}
+		// Make a copy of `fd` so that os.File's finalizer doesn't close `fd`.
+		newFd, err := unix.Dup(int(fd))
+		if err != nil {
+			return nil, err
+		}*/
+	dev := os.NewFile(uintptr(fd), "")
+	if dev == nil {
 		return nil, errors.New("failed to open TUN file descriptor")
 	}
+
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
@@ -69,18 +78,15 @@ func NewTun2socks(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVis
 	if trafficStats {
 		t.appStats = map[uint16]*appStats{}
 	}
-	var dev tun.Tun
 	var err error
-
 	if gVisor {
-		dev, err = gvisor.New(fd, mtu, gvisor.DefaultNIC, t)
+		t.dev, err = gvisor.New(dev, mtu, t, gvisor.DefaultNIC)
 	} else {
-		dev, err = lwip.New(fd, mtu, t)
+		t.dev, err = lwip.New(dev, mtu, t)
 	}
 	if err != nil {
 		return nil, err
 	}
-	t.dev = dev
 
 	net.DefaultResolver.Dial = t.dialDNS
 	return t, nil

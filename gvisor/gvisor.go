@@ -1,7 +1,6 @@
 package gvisor
 
 import (
-	"github.com/pkg/errors"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
@@ -23,18 +22,14 @@ type GVisor struct {
 }
 
 func (t *GVisor) Close() error {
-	return t.Close()
+	t.Stack.Close()
+	return nil
 }
 
 const DefaultNIC tcpip.NICID = 0x01
 
-func New(fd int32, mtu int32, nicId tcpip.NICID, handler tun.Handler) (*GVisor, error) {
-	file := os.NewFile(uintptr(fd), "")
-	if file == nil {
-		return nil, errors.New("failed to open TUN file descriptor")
-	}
-	endpoint := &rwEndpoint{rw: file, mtu: uint32(mtu)}
-
+func New(dev *os.File, mtu int32, handler tun.Handler, nicId tcpip.NICID) (*GVisor, error) {
+	endpoint := &rwEndpoint{rw: dev, mtu: uint32(mtu)}
 	s := stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
