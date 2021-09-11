@@ -611,8 +611,8 @@ github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIO
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=
 github.com/sagernet/sagerconnect v0.1.7/go.mod h1:BJo2SIUnKPyS7iG1xrFBhGlneYNKURT55YbsyTlu9MU=
-github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210911012223-6e352edbcb90 h1:uzRvNeWQOHxVVrIOL13+UvGvLeGfDK3MA3MgMwe2lq8=
-github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210911012223-6e352edbcb90/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
+github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210911153107-7519bccc766b h1:jyfW7HRT2TgOq9oByse0SqeIeZjgKaLOfyzzm50ISbs=
+github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210911153107-7519bccc766b/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
