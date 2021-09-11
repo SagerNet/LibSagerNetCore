@@ -48,6 +48,8 @@ require (
 	github.com/xtaci/smux v1.5.15 // indirect
 	go.starlark.net v0.0.0-20210901212718-87f333178d59 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
+	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
+	go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
 	golang.org/x/text v0.3.6 // indirect
@@ -58,4 +60,5 @@ require (
 	google.golang.org/grpc v1.40.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e // indirect
 )
