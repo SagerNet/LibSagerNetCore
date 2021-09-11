@@ -10,6 +10,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 	"libcore/tun"
 	"net"
+	"strconv"
 )
 
 func gUdpHandler(s *stack.Stack, handler tun.Handler) {
@@ -21,8 +22,8 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			return true
 		}
 
-		src, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", id.RemoteAddress.String(), ":", id.RemotePort))
-		dst, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", id.LocalAddress.String(), ":", id.LocalPort))
+		src, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))))
+		dst, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))))
 		data := buffer.Data().ExtractVV()
 		packet := &gUdpPacket{
 			s:        s,
