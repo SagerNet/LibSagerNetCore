@@ -83,7 +83,7 @@ func (l *Lwip) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) erro
 			from = addr
 		}
 		return conn.WriteFrom(bytes, from)
-	})
+	}, conn)
 	return nil
 }
 

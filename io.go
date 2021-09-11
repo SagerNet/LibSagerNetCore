@@ -22,8 +22,7 @@ func Unxz(archive string, path string) error {
 		return err
 	}
 	_, err = io.Copy(o, r)
-	closeIgnore(i)
-	closeIgnore(o)
+	closeIgnore(i, o)
 	return err
 }
 

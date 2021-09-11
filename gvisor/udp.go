@@ -31,7 +31,7 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			netHdr:   buffer.Network(),
 			netProto: buffer.NetworkProtocolNumber,
 		}
-		go handler.NewPacket(src, dst, data.ToView(), packet.WriteBack)
+		go handler.NewPacket(src, dst, data.ToView(), packet.WriteBack, nil)
 		return true
 	})
 }

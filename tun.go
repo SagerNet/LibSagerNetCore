@@ -206,11 +206,10 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		return io.EOF
 	})
 
-	_ = conn.Close()
-	_ = destConn.Close()
+	closeIgnore(conn, destConn)
 }
 
-func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error)) {
+func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer) {
 	natKey := source.NetAddr()
 
 	sendTo := func() bool {
@@ -366,7 +365,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	// close
 
 	_ = pool.Put(buf)
-	_ = conn.Close()
+	closeIgnore(conn, closer)
 	t.udpTable.Delete(natKey)
 }
 
