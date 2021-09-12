@@ -2,6 +2,7 @@ package lwip
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4/common/bytespool"
@@ -16,8 +17,7 @@ import (
 var _ tun.Tun = (*Lwip)(nil)
 
 type Lwip struct {
-	running bool
-	pool    *sync.Pool
+	pool *sync.Pool
 
 	Dev     *os.File
 	Stack   core.LWIPStack
@@ -26,8 +26,7 @@ type Lwip struct {
 
 func New(dev *os.File, mtu int32, handler tun.Handler) (*Lwip, error) {
 	t := &Lwip{
-		running: true,
-		pool:    bytespool.GetPool(mtu),
+		pool: bytespool.GetPool(mtu),
 
 		Dev:     dev,
 		Stack:   core.NewLWIPStack(),
@@ -38,35 +37,37 @@ func New(dev *os.File, mtu int32, handler tun.Handler) (*Lwip, error) {
 	core.RegisterUDPConnHandler(t)
 	core.SetMtu(mtu)
 
-	go t.processPacket()
+	go func() {
+		for {
+			err := t.processPacket()
+			if err != nil {
+				logrus.Warn(err.Error())
+				return
+			}
+		}
+	}()
+
 	return t, nil
 }
 
-func (l *Lwip) processPacket() {
-	if !l.running {
-		return
-	}
-	defer l.processPacket()
+func (l *Lwip) processPacket() error {
 	buffer := l.pool.Get().([]byte)
 	defer l.pool.Put(buffer)
 
 	length, err := l.Dev.Read(buffer)
 	if err != nil {
 		logrus.Warnf("failed to read packet from TUN: %v", err)
-		return
+		return nil
 	}
 	if length == 0 {
-		logrus.Info("read EOF from TUN")
-		l.running = false
-		return
-	}
-	_, err = l.Stack.Write(buffer)
-	if err != nil {
-		logrus.Warnf("failed to write packet to LWIP: %v", err)
-		l.running = false
-		return
+		return errors.New("read EOF from TUN")
 	}
 
+	_, err = l.Stack.Write(buffer)
+	if err != nil {
+		return errors.WithMessage(err, "failed to write packet to LWIP")
+	}
+	return nil
 }
 
 func (l *Lwip) Handle(conn net.Conn) error {
@@ -109,6 +110,5 @@ func (l *Lwip) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) erro
 }
 
 func (l *Lwip) Close() error {
-	l.running = false
 	return l.Stack.Close()
 }
