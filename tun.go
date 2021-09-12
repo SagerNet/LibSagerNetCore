@@ -6,7 +6,6 @@ import (
 	"github.com/Dreamacro/clash/common/pool"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
-	v2rayCore "github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
@@ -166,7 +165,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		})
 	}
 
-	destConn, err := v2rayCore.Dial(ctx, t.v2ray.core, destination)
+	destConn, err := t.v2ray.dialContext(ctx, destination)
 
 	if err != nil {
 		logrus.Errorf("[TCP] dial failed: %s", err.Error())
@@ -315,7 +314,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		})
 	}
 
-	conn, err := v2rayCore.Dial(ctx, t.v2ray.core, destination)
+	conn, err := t.v2ray.dialContext(ctx, destination)
 
 	if err != nil {
 		logrus.Errorf("[UDP] dial failed: %s", err.Error())
@@ -370,9 +369,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 }
 
 func (t *Tun2ray) dialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
-	conn, err := v2rayCore.Dial(session.ContextWithInbound(ctx, &session.Inbound{
+	conn, err := t.v2ray.dialContext(session.ContextWithInbound(ctx, &session.Inbound{
 		Tag: "dns-in",
-	}), t.v2ray.core, v2rayNet.Destination{
+	}), v2rayNet.Destination{
 		Network: v2rayNet.Network_UDP,
 		Address: v2rayNet.ParseAddress("1.0.0.1"),
 		Port:    53,
