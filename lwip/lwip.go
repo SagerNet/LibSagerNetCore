@@ -14,9 +14,9 @@ import (
 	"sync"
 )
 
-var _ tun.Tun = (*Lwip)(nil)
+var _ tun.Tun = (*LwIP)(nil)
 
-type Lwip struct {
+type LwIP struct {
 	pool *sync.Pool
 
 	Dev     *os.File
@@ -24,8 +24,8 @@ type Lwip struct {
 	Handler tun.Handler
 }
 
-func New(dev *os.File, mtu int32, handler tun.Handler) (*Lwip, error) {
-	t := &Lwip{
+func New(dev *os.File, mtu int32, handler tun.Handler) (*LwIP, error) {
+	t := &LwIP{
 		pool: bytespool.GetPool(mtu),
 
 		Dev:     dev,
@@ -50,7 +50,7 @@ func New(dev *os.File, mtu int32, handler tun.Handler) (*Lwip, error) {
 	return t, nil
 }
 
-func (l *Lwip) processPacket() error {
+func (l *LwIP) processPacket() error {
 	buffer := l.pool.Get().([]byte)
 	defer l.pool.Put(buffer)
 
@@ -70,7 +70,7 @@ func (l *Lwip) processPacket() error {
 	return nil
 }
 
-func (l *Lwip) Handle(conn net.Conn) error {
+func (l *LwIP) Handle(conn net.Conn) error {
 	srcAddr := conn.LocalAddr().String()
 	src, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", srcAddr))
 	if err != nil {
@@ -87,7 +87,7 @@ func (l *Lwip) Handle(conn net.Conn) error {
 	return nil
 }
 
-func (l *Lwip) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) error {
+func (l *LwIP) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) error {
 	srcAddr := conn.LocalAddr().String()
 	src, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", srcAddr))
 	if err != nil {
@@ -109,6 +109,6 @@ func (l *Lwip) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) erro
 	return nil
 }
 
-func (l *Lwip) Close() error {
+func (l *LwIP) Close() error {
 	return l.Stack.Close()
 }
