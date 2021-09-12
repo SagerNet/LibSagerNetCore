@@ -59,7 +59,7 @@ func (i *ApiInstance) Close() {
 
 	if i.started {
 		i.started = false
-		_ = i.conn.Close()
+		closeIgnore(i.conn)
 	}
 }
 

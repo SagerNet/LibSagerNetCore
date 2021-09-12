@@ -2,6 +2,7 @@ package lwip
 
 import (
 	"fmt"
+	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4/common/bytespool"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
@@ -69,15 +70,35 @@ func (l *Lwip) processPacket() {
 }
 
 func (l *Lwip) Handle(conn net.Conn) error {
-	src, _ := v2rayNet.ParseDestination(fmt.Sprint("tcp:", conn.LocalAddr().String()))
-	dst, _ := v2rayNet.ParseDestination(fmt.Sprint("tcp:", conn.RemoteAddr().String()))
+	srcAddr := conn.LocalAddr().String()
+	src, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", srcAddr))
+	if err != nil {
+		log.Warn("[TCP] parse source address ", srcAddr, " failed: ", err)
+		return err
+	}
+	dstAddr := conn.RemoteAddr().String()
+	dst, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", dstAddr))
+	if err != nil {
+		log.Warn("[TCP] parse destination address ", dstAddr, " failed: ", err)
+		return err
+	}
 	go l.Handler.NewConnection(src, dst, conn)
 	return nil
 }
 
 func (l *Lwip) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) error {
-	src, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", conn.LocalAddr().String()))
-	dst, _ := v2rayNet.ParseDestination(fmt.Sprint("udp:", addr.String()))
+	srcAddr := conn.LocalAddr().String()
+	src, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", srcAddr))
+	if err != nil {
+		log.Warn("[UDP] parse source address ", srcAddr, " failed: ", err)
+		return err
+	}
+	dstAddr := addr.String()
+	dst, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", dstAddr))
+	if err != nil {
+		log.Warn("[UDP] parse destination address ", dstAddr, " failed: ", err)
+		return err
+	}
 	go l.Handler.NewPacket(src, dst, data, func(bytes []byte, from *net.UDPAddr) (int, error) {
 		if from == nil {
 			from = addr

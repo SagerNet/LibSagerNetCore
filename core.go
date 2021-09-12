@@ -2,7 +2,7 @@ package libcore
 
 import (
 	"github.com/sagernet/libping"
-	"io"
+	"github.com/v2fly/v2ray-core/v4/common"
 	"os"
 	"runtime"
 )
@@ -29,11 +29,14 @@ func Gc() {
 	runtime.GC()
 }
 
-func closeIgnore(closer ...io.Closer) {
+func closeIgnore(closer ...interface{}) {
 	for _, c := range closer {
-		if c == nil {
-			continue
+		if ca, ok := c.(common.Closable); ok {
+			_ = ca.Close()
+		} else if ia, ok := c.(common.Interruptible); ok {
+			ia.Interrupt()
+		} else if ch, ok := c.(chan interface{}); ok {
+			close(ch)
 		}
-		_ = c.Close()
 	}
 }

@@ -105,7 +105,7 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 		return nil, err
 	}
 
-	_ = file.Close()
+	closeIgnore(file)
 	return conn, nil
 }
 
