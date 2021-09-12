@@ -7,6 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/miekg/dns v1.1.43
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/common v0.10.0
 	github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
@@ -20,19 +21,20 @@ require (
 
 replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
 
-replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210912060828-069c4d6282c2
+replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210912070632-53416e47c9df
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/ClashDotNetFramework/experimental-clash v1.7.4-0.20210911112419-f3fead5f283c
 
 require (
 	github.com/ClashDotNetFramework/go-shadowsocks2 v0.1.8 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
-	github.com/ebfe/bcrypt_pbkdf v0.0.0-20140212075826-3c8d2dcb253a // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/geeksbaek/seed v0.0.0-20180909040025-2a7f5fb92e22 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
@@ -51,7 +53,6 @@ require (
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20201222105146-bc6005554a0c // indirect
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08 // indirect
-	github.com/v2fly/VSign v0.0.0-20201108000810-e2adc24bf848 // indirect
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	github.com/xtls/go v0.0.0-20201118062508-3632bf3b7499 // indirect
@@ -68,6 +69,7 @@ require (
 	google.golang.org/genproto v0.0.0-20210312152112-fc591d9ea70f // indirect
 	google.golang.org/grpc v1.40.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e // indirect
 )
