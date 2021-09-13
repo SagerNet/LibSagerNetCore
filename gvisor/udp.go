@@ -44,7 +44,16 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			netHdr:   buffer.Network(),
 			netProto: buffer.NetworkProtocolNumber,
 		}
-		go handler.NewPacket(src, dst, data.ToView(), packet.WriteBack, nil)
+		destUdpAddr := &net.UDPAddr{
+			IP:   dst.Address.IP(),
+			Port: int(dst.Port),
+		}
+		go handler.NewPacket(src, dst, data.ToView(), func(bytes []byte, addr *net.UDPAddr) (int, error) {
+			if addr == nil {
+				addr = destUdpAddr
+			}
+			return packet.WriteBack(bytes, addr)
+		}, nil)
 		return true
 	})
 }

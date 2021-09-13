@@ -7,6 +7,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/observatory"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/extension"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
@@ -28,6 +29,7 @@ type V2RayInstance struct {
 	statsManager stats.Manager
 	observatory  *observatory.Observer
 	dispatcher   routing.Dispatcher
+	dnsClient    dns.Client
 }
 
 func NewV2rayInstance() *V2RayInstance {
@@ -70,6 +72,7 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	instance.core = c
 	instance.statsManager = c.GetFeature(stats.ManagerType()).(stats.Manager)
 	instance.dispatcher = c.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
+	instance.dnsClient = c.GetFeature(dns.ClientType()).(dns.Client)
 
 	o := c.GetFeature(extension.ObservatoryType())
 	if o != nil {
