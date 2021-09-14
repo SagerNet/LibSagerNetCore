@@ -25,15 +25,16 @@ import (
 var _ tun.Handler = (*Tun2ray)(nil)
 
 type Tun2ray struct {
-	access    sync.Mutex
-	dev       tun.Tun
-	router    string
-	hijackDns bool
-	v2ray     *V2RayInstance
-	udpTable  *natTable
-	fakedns   bool
-	sniffing  bool
-	debug     bool
+	access              sync.Mutex
+	dev                 tun.Tun
+	router              string
+	hijackDns           bool
+	v2ray               *V2RayInstance
+	udpTable            *natTable
+	fakedns             bool
+	sniffing            bool
+	overrideDestination bool
+	debug               bool
 
 	dumpUid      bool
 	trafficStats bool
@@ -45,7 +46,7 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, overrideDestination bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
 	/*	if fd < 0 {
 			return nil, errors.New("must provide a valid TUN file descriptor")
 		}
@@ -65,15 +66,16 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 		logrus.SetLevel(logrus.WarnLevel)
 	}
 	t := &Tun2ray{
-		router:       router,
-		hijackDns:    hijackDns,
-		v2ray:        v2ray,
-		udpTable:     &natTable{},
-		sniffing:     sniffing,
-		fakedns:      fakedns,
-		debug:        debug,
-		dumpUid:      dumpUid,
-		trafficStats: trafficStats,
+		router:              router,
+		hijackDns:           hijackDns,
+		v2ray:               v2ray,
+		udpTable:            &natTable{},
+		sniffing:            sniffing,
+		overrideDestination: overrideDestination,
+		fakedns:             fakedns,
+		debug:               debug,
+		dumpUid:             dumpUid,
+		trafficStats:        trafficStats,
 	}
 
 	if trafficStats {
@@ -175,6 +177,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		req := session.SniffingRequest{
 			Enabled:      true,
 			MetadataOnly: t.fakedns && !t.sniffing,
+			RouteOnly:    !t.overrideDestination,
 		}
 		if t.sniffing && t.fakedns {
 			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
@@ -335,6 +338,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 				Enabled:                        true,
 				MetadataOnly:                   t.fakedns && !t.sniffing,
 				OverrideDestinationForProtocol: []string{"fakedns"},
+				RouteOnly:                      !t.overrideDestination,
 			},
 		})
 	}

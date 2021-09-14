@@ -12,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/features/routing"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
+	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/udp"
 	"net"
 	"strings"
