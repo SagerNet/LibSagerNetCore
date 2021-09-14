@@ -110,5 +110,9 @@ func (l *LwIP) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr) erro
 }
 
 func (l *LwIP) Close() error {
-	return l.Stack.Close()
+	err := l.Stack.Close()
+	core.RegisterOutputFn(nil)
+	core.RegisterTCPConnHandler(nil)
+	core.RegisterUDPConnHandler(nil)
+	return err
 }
