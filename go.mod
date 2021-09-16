@@ -22,7 +22,7 @@ require (
 replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
 
 //replace github.com/v2fly/v2ray-core/v4 v4.42.1 => ../v2ray-core
-replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210915235632-0ea2f0ecf22e
+replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210915232952-a07f821bc610
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179
 
@@ -57,8 +57,6 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	go.starlark.net v0.0.0-20210901212718-87f333178d59 // indirect
-	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
 	golang.org/x/text v0.3.6 // indirect
@@ -70,5 +68,4 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e // indirect
 )

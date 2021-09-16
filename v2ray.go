@@ -66,6 +66,16 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 		config.Inbound = nil
 		config.App = config.App[:4]
 	}
+	return instance.init(config)
+}
+
+func (instance *V2RayInstance) LoadProto(builder *V2RayBuilder) error {
+	instance.access.Lock()
+	defer instance.access.Unlock()
+	return instance.init(builder.config)
+}
+
+func (instance *V2RayInstance) init(config *core.Config) error {
 	c, err := core.New(config)
 	if err != nil {
 		return err

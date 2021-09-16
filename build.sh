@@ -10,7 +10,7 @@ rm -rf build/android \
 gomobile bind -v -cache $(realpath build) -trimpath -ldflags='-s -w' . || exit 1
 rm -r libcore-sources.jar
 
-proj=../SagerNet/app/libs
+proj=../SagerNetV5/app/libs
 if [ -d $proj ]; then
   cp -f libcore.aar $proj
   echo ">> install $(realpath $proj)/libcore.aar"
