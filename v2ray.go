@@ -6,6 +6,7 @@ import (
 	"fmt"
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/observatory"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/extension"
@@ -125,13 +126,13 @@ func (instance *V2RayInstance) dialContext(ctx context.Context, destination v2ra
 	if err != nil {
 		return nil, err
 	}
-	var readerOpt v2rayNet.ConnectionOption
+	var readerOpt buf.ConnectionOption
 	if destination.Network == v2rayNet.Network_TCP {
-		readerOpt = v2rayNet.ConnectionOutputMulti(r.Reader)
+		readerOpt = buf.ConnectionOutputMulti(r.Reader)
 	} else {
-		readerOpt = v2rayNet.ConnectionOutputMultiUDP(r.Reader)
+		readerOpt = buf.ConnectionOutputMultiUDP(r.Reader)
 	}
-	return v2rayNet.NewConnection(v2rayNet.ConnectionInputMulti(r.Writer), readerOpt), nil
+	return buf.NewConnection(buf.ConnectionInputMulti(r.Writer), readerOpt), nil
 }
 
 func (instance *V2RayInstance) dialUDP(ctx context.Context) (net.PacketConn, error) {

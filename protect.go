@@ -59,7 +59,7 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 	return conn, err
 }
 
-func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
+func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (conn net.Conn, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	destIp := destination.Address.IP()
@@ -98,7 +98,23 @@ func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address,
 		return nil, errors.New("failed to connect to fd")
 	}
 
-	conn, err := net.FileConn(file)
+	switch destination.Network {
+	case v2rayNet.Network_UDP:
+		pc, err := net.FilePacketConn(file)
+		if err == nil {
+			destAddr, err := net.ResolveUDPAddr("udp", destination.NetAddr())
+			if err != nil {
+				return nil, err
+			}
+			conn = &internet.PacketConnWrapper{
+				Conn: pc,
+				Dest: destAddr,
+			}
+		}
+	default:
+		conn, err = net.FileConn(file)
+	}
+
 	if err != nil {
 		return nil, err
 	}

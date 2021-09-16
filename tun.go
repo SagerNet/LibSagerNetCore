@@ -244,7 +244,10 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		if conn == nil {
 			return false
 		}
-		_, err := conn.Write(data)
+		_, err := conn.WriteTo(data, &net.UDPAddr{
+			IP:   destination.Address.IP(),
+			Port: int(destination.Port),
+		})
 		if err != nil {
 			_ = conn.Close()
 		}
@@ -343,7 +346,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		})
 	}
 
-	conn, err := t.v2ray.dialContext(ctx, destination)
+	conn, err := t.v2ray.dialUDP(ctx)
 
 	if err != nil {
 		logrus.Errorf("[UDP] dial failed: %s", err.Error())
@@ -369,7 +372,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 				}
 			}()
-			conn = &statsConn{conn, &stats.uplink, &stats.downlink}
+			conn = &statsPacketConn{conn, &stats.uplink, &stats.downlink}
 		}
 	}
 
@@ -380,11 +383,18 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	buf := pool.Get(pool.RelayBufferSize)
 
 	for {
-		n, err := conn.Read(buf)
+		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
 			break
 		}
-		_, err = writeBack(buf[:n], nil)
+		if isDns {
+			addr = nil
+		}
+		if addr, ok := addr.(*net.UDPAddr); ok {
+			_, err = writeBack(buf[:n], addr)
+		} else {
+			_, err = writeBack(buf[:n], nil)
+		}
 		if err != nil {
 			break
 		}
@@ -432,16 +442,16 @@ type natTable struct {
 	mapping sync.Map
 }
 
-func (t *natTable) Set(key string, pc net.Conn) {
+func (t *natTable) Set(key string, pc net.PacketConn) {
 	t.mapping.Store(key, pc)
 }
 
-func (t *natTable) Get(key string) net.Conn {
+func (t *natTable) Get(key string) net.PacketConn {
 	item, exist := t.mapping.Load(key)
 	if !exist {
 		return nil
 	}
-	return item.(net.Conn)
+	return item.(net.PacketConn)
 }
 
 func (t *natTable) GetOrCreateLock(key string) (*sync.Cond, bool) {
