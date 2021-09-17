@@ -33,7 +33,7 @@ jobs:
       - name: ZIP libcore
         run: |
           ls
-          zip -r libcore.zip ./libcore/
+          zip -r libcore.zip ./build/
       - name: Upload ZIP
         uses: actions/upload-artifact@v1
         with:
