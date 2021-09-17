@@ -11,8 +11,8 @@ on:
   pull_request:
     branches:
       - main
-	watch:
-    types: [started]
+  watch:
+      types: [started]
 
 jobs:
   build:
