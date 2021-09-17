@@ -11,6 +11,8 @@ on:
   pull_request:
     branches:
       - main
+	watch:
+    types: [started]
 
 jobs:
   build:
@@ -27,3 +29,4 @@ jobs:
         run: |
           ./init.sh
           ./build.sh
+          ls
