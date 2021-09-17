@@ -9,6 +9,8 @@ import (
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
+	v2rayDns "github.com/v2fly/v2ray-core/v4/features/dns"
+	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"io"
 	"libcore/gvisor"
 	"libcore/lwip"
@@ -23,15 +25,16 @@ import (
 var _ tun.Handler = (*Tun2ray)(nil)
 
 type Tun2ray struct {
-	access    sync.Mutex
-	dev       tun.Tun
-	router    string
-	hijackDns bool
-	v2ray     *V2RayInstance
-	udpTable  *natTable
-	fakedns   bool
-	sniffing  bool
-	debug     bool
+	access              sync.Mutex
+	dev                 tun.Tun
+	router              string
+	hijackDns           bool
+	v2ray               *V2RayInstance
+	udpTable            *natTable
+	fakedns             bool
+	sniffing            bool
+	overrideDestination bool
+	debug               bool
 
 	dumpUid      bool
 	trafficStats bool
@@ -43,7 +46,7 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, overrideDestination bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
 	/*	if fd < 0 {
 			return nil, errors.New("must provide a valid TUN file descriptor")
 		}
@@ -63,15 +66,16 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 		logrus.SetLevel(logrus.WarnLevel)
 	}
 	t := &Tun2ray{
-		router:       router,
-		hijackDns:    hijackDns,
-		v2ray:        v2ray,
-		udpTable:     &natTable{},
-		sniffing:     sniffing,
-		fakedns:      fakedns,
-		debug:        debug,
-		dumpUid:      dumpUid,
-		trafficStats: trafficStats,
+		router:              router,
+		hijackDns:           hijackDns,
+		v2ray:               v2ray,
+		udpTable:            &natTable{},
+		sniffing:            sniffing,
+		overrideDestination: overrideDestination,
+		fakedns:             fakedns,
+		debug:               debug,
+		dumpUid:             dumpUid,
+		trafficStats:        trafficStats,
 	}
 
 	if trafficStats {
@@ -86,6 +90,29 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 	if err != nil {
 		return nil, err
 	}
+
+	dc := v2ray.dnsClient
+	if c, ok := dc.(v2rayDns.ClientWithIPOption); ok {
+		internet.UseAlternativeSystemDialer(&protectedDialer{
+			resolver: func(domain string) ([]net.IP, error) {
+				c.SetFakeDNSOption(false) // Skip FakeDNS
+				return dc.LookupIP(domain)
+			},
+		})
+	} else {
+		internet.UseAlternativeSystemDialer(&protectedDialer{
+			resolver: func(domain string) ([]net.IP, error) {
+				return dc.LookupIP(domain)
+			},
+		})
+	}
+
+	nc := &net.Resolver{PreferGo: false}
+	internet.UseAlternativeSystemDNSDialer(&protectedDialer{
+		resolver: func(domain string) ([]net.IP, error) {
+			return nc.LookupIP(context.Background(), "ip", domain)
+		},
+	})
 
 	net.DefaultResolver.Dial = t.dialDNS
 	return t, nil
@@ -150,6 +177,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		req := session.SniffingRequest{
 			Enabled:      true,
 			MetadataOnly: t.fakedns && !t.sniffing,
+			RouteOnly:    !t.overrideDestination,
 		}
 		if t.sniffing && t.fakedns {
 			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
@@ -216,7 +244,10 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		if conn == nil {
 			return false
 		}
-		_, err := conn.Write(data)
+		_, err := conn.WriteTo(data, &net.UDPAddr{
+			IP:   destination.Address.IP(),
+			Port: int(destination.Port),
+		})
 		if err != nil {
 			_ = conn.Close()
 		}
@@ -310,11 +341,12 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 				Enabled:                        true,
 				MetadataOnly:                   t.fakedns && !t.sniffing,
 				OverrideDestinationForProtocol: []string{"fakedns"},
+				RouteOnly:                      !t.overrideDestination,
 			},
 		})
 	}
 
-	conn, err := t.v2ray.dialContext(ctx, destination)
+	conn, err := t.v2ray.dialUDP(ctx)
 
 	if err != nil {
 		logrus.Errorf("[UDP] dial failed: %s", err.Error())
@@ -340,7 +372,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 				}
 			}()
-			conn = &statsConn{conn, &stats.uplink, &stats.downlink}
+			conn = &statsPacketConn{conn, &stats.uplink, &stats.downlink}
 		}
 	}
 
@@ -351,11 +383,18 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	buf := pool.Get(pool.RelayBufferSize)
 
 	for {
-		n, err := conn.Read(buf)
+		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
 			break
 		}
-		_, err = writeBack(buf[:n], nil)
+		if isDns {
+			addr = nil
+		}
+		if addr, ok := addr.(*net.UDPAddr); ok {
+			_, err = writeBack(buf[:n], addr)
+		} else {
+			_, err = writeBack(buf[:n], nil)
+		}
 		if err != nil {
 			break
 		}
@@ -368,18 +407,19 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	t.udpTable.Delete(natKey)
 }
 
-func (t *Tun2ray) dialDNS(ctx context.Context, _, _ string) (net.Conn, error) {
-	conn, err := t.v2ray.dialContext(session.ContextWithInbound(ctx, &session.Inbound{
-		Tag: "dns-in",
+func (t *Tun2ray) dialDNS(ctx context.Context, _, _ string) (conn net.Conn, err error) {
+	conn, err = t.v2ray.dialContext(session.ContextWithInbound(ctx, &session.Inbound{
+		Tag:         "dns-in",
+		SkipFakeDNS: true,
 	}), v2rayNet.Destination{
 		Network: v2rayNet.Network_UDP,
 		Address: v2rayNet.ParseAddress("1.0.0.1"),
 		Port:    53,
 	})
-	if err != nil {
-		return nil, err
+	if err == nil {
+		conn = wrappedConn{conn}
 	}
-	return &wrappedConn{conn}, nil
+	return
 }
 
 type wrappedConn struct {
@@ -402,16 +442,16 @@ type natTable struct {
 	mapping sync.Map
 }
 
-func (t *natTable) Set(key string, pc net.Conn) {
+func (t *natTable) Set(key string, pc net.PacketConn) {
 	t.mapping.Store(key, pc)
 }
 
-func (t *natTable) Get(key string) net.Conn {
+func (t *natTable) Get(key string) net.PacketConn {
 	item, exist := t.mapping.Load(key)
 	if !exist {
 		return nil
 	}
-	return item.(net.Conn)
+	return item.(net.PacketConn)
 }
 
 func (t *natTable) GetOrCreateLock(key string) (*sync.Cond, bool) {

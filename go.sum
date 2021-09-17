@@ -64,8 +64,6 @@ github.com/Azure/go-autorest/tracing v0.5.0/go.mod h1:r/s2XiOKccPW3HrqB+W0TQzfbt
 github.com/Azure/go-autorest/tracing v0.6.0/go.mod h1:+vhtPC754Xsa23ID7GlGsrdKBpUA79WCAKPPZVC2DeU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ClashDotNetFramework/experimental-clash v1.7.4-0.20210911112419-f3fead5f283c h1:NNWtLs6gCHq/i93U+ym2TLLzEsuE0VIFz3s++WQLaFs=
-github.com/ClashDotNetFramework/experimental-clash v1.7.4-0.20210911112419-f3fead5f283c/go.mod h1:uqS1RdH2tYclOyhr9HiEIiWRFCeWfmNarJSiVCtrJD8=
 github.com/ClashDotNetFramework/go-shadowsocks2 v0.1.8 h1:C3nlaALQSU1Ro2le1yATtHde1aBl4hY3b67eeLQEeJc=
 github.com/ClashDotNetFramework/go-shadowsocks2 v0.1.8/go.mod h1:GVYXKzZWGxE04ZNIeRi3EHZeTUfKidatPsGqLQ/Kd0Q=
 github.com/Dreamacro/go-shadowsocks2 v0.1.7/go.mod h1:8p5G4cAj5ZlXwUR+Ww63gfSikr8kvw8uw3TDwLAJpUc=
@@ -623,6 +621,8 @@ github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
+github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179 h1:sLv055kW5/TfTwEsZ8mpQW20je3n+5/J98kczC5G13A=
+github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179/go.mod h1:uqS1RdH2tYclOyhr9HiEIiWRFCeWfmNarJSiVCtrJD8=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844 h1:o7izBZde2L5foPbQdYisY03y4+6T6UcUXOwR5MyQpUk=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844/go.mod h1:2Xj8wyq0y6G6B1gCNTzRcKqo+cyVKatMTNWUmxNYfI4=
 github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92 h1:qTeBgE26RiffQ2MXb9DYNB6Vkbz8+0tnWYuiIrw01kk=
@@ -631,8 +631,8 @@ github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIO
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=
 github.com/sagernet/sagerconnect v0.1.7/go.mod h1:BJo2SIUnKPyS7iG1xrFBhGlneYNKURT55YbsyTlu9MU=
-github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210912070632-53416e47c9df h1:mWjTHpWzvPhw7kZqQaxB4jyF0pqgymx+OSyHv59U/Q8=
-github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210912070632-53416e47c9df/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
+github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210916221941-443215e54ff2 h1:IctmemoCOTqObjFNCdk+Tw9YgGaTYl6QmQSh/GqxPL0=
+github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210916221941-443215e54ff2/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
@@ -735,7 +735,6 @@ github.com/xjasonlyu/tun2socks v1.18.4-0.20210813034434-85cf694b8fed/go.mod h1:V
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/xtaci/smux v1.5.15 h1:6hMiXswcleXj5oNfcJc+DXS8Vj36XX2LaX98udog6Kc=
 github.com/xtaci/smux v1.5.15/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
-github.com/xtls/go v0.0.0-20201118062508-3632bf3b7499 h1:QHESTXtfgc1ABV+ArlbPVqUx9Ht5I0dDkYhxYoXFxNo=
 github.com/xtls/go v0.0.0-20201118062508-3632bf3b7499/go.mod h1:5TB2+k58gx4A4g2Nf5miSHNDF6CuAzHKpWBooLAshTs=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

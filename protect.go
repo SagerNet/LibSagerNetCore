@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
@@ -13,65 +14,62 @@ import (
 	"time"
 )
 
+var fdProtector Protector
+
 type Protector interface {
 	Protect(fd int32) bool
 }
 
 func SetProtector(protector Protector) {
-	internet.UseAlternativeSystemDialer(protectedDialer{
-		protector: protector,
-		resolver:  net.DefaultResolver,
-	})
-	internet.UseAlternativeSystemDNSDialer(protectedDialer{
-		protector: protector,
-		resolver:  &net.Resolver{PreferGo: false},
-	})
+	fdProtector = protector
 }
 
 type protectedDialer struct {
-	protector Protector
-	resolver  *net.Resolver
+	resolver func(domain string) ([]net.IP, error)
 }
 
-func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var destIp net.IP
-	if destination.Address.Family().IsIP() {
-		destIp = destination.Address.IP()
-	} else {
-		addresses, err := dialer.resolver.LookupIPAddr(ctx, destination.Address.Domain())
-		if err == nil && len(addresses) == 0 {
+func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (conn net.Conn, err error) {
+	var ips []net.IP
+	if destination.Address.Family().IsDomain() {
+		ips, err = dialer.resolver(destination.Address.Domain())
+		if err == nil && len(ips) == 0 {
 			err = dns.ErrEmptyResponse
 		}
 		if err != nil {
 			return nil, err
 		}
-
-		if ipv6Mode == 3 {
-			// ipv6 only
-
-			for _, addr := range addresses {
-				v2Addr := v2rayNet.ParseAddress(addr.String())
-				if v2Addr.Family().IsIPv6() {
-					destIp = addr.IP
-					break
-				}
-			}
-		}
-		if destIp == nil {
-			destIp = addresses[0].IP
-		}
+	} else {
+		ips = append(ips, destination.Address.IP())
 	}
 
+	for i, ip := range ips {
+		if i > 0 {
+			if err == nil {
+				break
+			} else {
+				logrus.Warn("dial system failed: ", err)
+				time.Sleep(time.Millisecond * 200)
+			}
+			logrus.Debug("trying next address: ", ip.String())
+		}
+		destination.Address = v2rayNet.IPAddress(ip)
+		conn, err = dialer.dial(ctx, source, destination, sockopt)
+	}
+
+	return conn, err
+}
+
+func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (conn net.Conn, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	destIp := destination.Address.IP()
 	ipv6 := len(destIp) != net.IPv4len
 	fd, err := getFd(destination.Network, ipv6)
 	if err != nil {
 		return nil, err
 	}
 
-	if !dialer.protector.Protect(int32(fd)) {
+	if !fdProtector.Protect(int32(fd)) {
 		return nil, errors.New("protect failed")
 	}
 
@@ -100,7 +98,23 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 		return nil, errors.New("failed to connect to fd")
 	}
 
-	conn, err := net.FileConn(file)
+	switch destination.Network {
+	case v2rayNet.Network_UDP:
+		pc, err := net.FilePacketConn(file)
+		if err == nil {
+			destAddr, err := net.ResolveUDPAddr("udp", destination.NetAddr())
+			if err != nil {
+				return nil, err
+			}
+			conn = &internet.PacketConnWrapper{
+				Conn: pc,
+				Dest: destAddr,
+			}
+		}
+	default:
+		conn, err = net.FileConn(file)
+	}
+
 	if err != nil {
 		return nil, err
 	}

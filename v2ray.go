@@ -6,11 +6,14 @@ import (
 	"fmt"
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/observatory"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/extension"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/infra/conf/serial"
+	_ "github.com/v2fly/v2ray-core/v4/main/distro/all"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/udp"
 	"net"
 	"strings"
@@ -28,6 +31,7 @@ type V2RayInstance struct {
 	statsManager stats.Manager
 	observatory  *observatory.Observer
 	dispatcher   routing.Dispatcher
+	dnsClient    dns.Client
 }
 
 func NewV2rayInstance() *V2RayInstance {
@@ -70,6 +74,7 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	instance.core = c
 	instance.statsManager = c.GetFeature(stats.ManagerType()).(stats.Manager)
 	instance.dispatcher = c.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
+	instance.dnsClient = c.GetFeature(dns.ClientType()).(dns.Client)
 
 	o := c.GetFeature(extension.ObservatoryType())
 	if o != nil {
@@ -121,13 +126,13 @@ func (instance *V2RayInstance) dialContext(ctx context.Context, destination v2ra
 	if err != nil {
 		return nil, err
 	}
-	var readerOpt v2rayNet.ConnectionOption
+	var readerOpt buf.ConnectionOption
 	if destination.Network == v2rayNet.Network_TCP {
-		readerOpt = v2rayNet.ConnectionOutputMulti(r.Reader)
+		readerOpt = buf.ConnectionOutputMulti(r.Reader)
 	} else {
-		readerOpt = v2rayNet.ConnectionOutputMultiUDP(r.Reader)
+		readerOpt = buf.ConnectionOutputMultiUDP(r.Reader)
 	}
-	return v2rayNet.NewConnection(v2rayNet.ConnectionInputMulti(r.Writer), readerOpt), nil
+	return buf.NewConnection(buf.ConnectionInputMulti(r.Writer), readerOpt), nil
 }
 
 func (instance *V2RayInstance) dialUDP(ctx context.Context) (net.PacketConn, error) {

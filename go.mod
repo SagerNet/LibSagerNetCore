@@ -21,9 +21,10 @@ require (
 
 replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
 
-replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.42.2-0.20210912070632-53416e47c9df
+//replace github.com/v2fly/v2ray-core/v4 v4.42.1 => ../v2ray-core
+replace github.com/v2fly/v2ray-core/v4 v4.42.1 => github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210916221941-443215e54ff2
 
-replace github.com/Dreamacro/clash v1.6.5 => github.com/ClashDotNetFramework/experimental-clash v1.7.4-0.20210911112419-f3fead5f283c
+replace github.com/Dreamacro/clash v1.6.5 => github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179
 
 require (
 	github.com/ClashDotNetFramework/go-shadowsocks2 v0.1.8 // indirect
@@ -55,9 +56,7 @@ require (
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08 // indirect
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
-	github.com/xtls/go v0.0.0-20201118062508-3632bf3b7499 // indirect
 	go.starlark.net v0.0.0-20210901212718-87f333178d59 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
 	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063 // indirect
 	golang.org/x/mod v0.4.2 // indirect

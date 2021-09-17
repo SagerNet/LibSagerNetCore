@@ -50,25 +50,24 @@ func newUDPConn(pcb *C.struct_udp_pcb, handler UDPConnHandler, localIP C.ip_addr
 	}
 
 	go func() {
-
 		conn.Lock()
 		conn.state = udpConnected
 		conn.Unlock()
-
+		// Once connected, send all pending data.
+	DrainPending:
 		for {
 			select {
 			case pkt := <-conn.pending:
 				err := conn.handler.ReceiveTo(conn, pkt.data, pkt.addr)
 				if err != nil {
-					break
+					break DrainPending
 				}
-				continue
+				continue DrainPending
 			default:
 				conn.pending = nil
-				break
+				break DrainPending
 			}
 		}
-
 	}()
 
 	return conn, nil
