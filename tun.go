@@ -6,6 +6,8 @@ import (
 	"github.com/Dreamacro/clash/common/pool"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
+	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
@@ -193,7 +195,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		})
 	}
 
-	destConn, err := t.v2ray.dialContext(ctx, destination)
+	link, err := t.v2ray.dispatcher.Dispatch(core.WithContext(ctx, t.v2ray.core), destination)
 
 	if err != nil {
 		logrus.Errorf("[TCP] dial failed: %s", err.Error())
@@ -201,39 +203,36 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	}
 
 	if t.trafficStats && !self && !isDns {
-
-		t.access.Lock()
-		if !t.trafficStats {
-			t.access.Unlock()
-		} else {
-
-			stats := t.appStats[uid]
+		stats := t.appStats[uid]
+		if stats == nil {
+			t.access.Lock()
+			stats = t.appStats[uid]
 			if stats == nil {
 				stats = &appStats{}
 				t.appStats[uid] = stats
 			}
 			t.access.Unlock()
-			atomic.AddInt32(&stats.tcpConn, 1)
-			atomic.AddUint32(&stats.tcpConnTotal, 1)
-			atomic.StoreInt64(&stats.deactivateAt, 0)
-			defer func() {
-				if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
-					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
-				}
-			}()
-			destConn = &statsConn{destConn, &stats.uplink, &stats.downlink}
 		}
+		atomic.AddInt32(&stats.tcpConn, 1)
+		atomic.AddUint32(&stats.tcpConnTotal, 1)
+		atomic.StoreInt64(&stats.deactivateAt, 0)
+		defer func() {
+			if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
+				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+			}
+		}()
+		conn = &statsConn{conn, &stats.uplink, &stats.downlink}
 	}
 
 	_ = task.Run(ctx, func() error {
-		_, _ = io.Copy(conn, destConn)
+		_ = buf.Copy(buf.NewReader(conn), link.Writer)
 		return io.EOF
 	}, func() error {
-		_, _ = io.Copy(destConn, conn)
+		_ = buf.Copy(link.Reader, buf.NewWriter(conn))
 		return io.EOF
 	})
 
-	closeIgnore(conn, destConn)
+	closeIgnore(conn, link.Reader, link.Writer)
 }
 
 func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer) {
@@ -354,36 +353,35 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	}
 
 	if t.trafficStats && !self && !isDns {
-		t.access.Lock()
-		if !t.trafficStats {
-			t.access.Unlock()
-		} else {
-			stats := t.appStats[uid]
+		stats := t.appStats[uid]
+		if stats == nil {
+			t.access.Lock()
+			stats = t.appStats[uid]
 			if stats == nil {
 				stats = &appStats{}
 				t.appStats[uid] = stats
 			}
 			t.access.Unlock()
-			atomic.AddInt32(&stats.udpConn, 1)
-			atomic.AddUint32(&stats.udpConnTotal, 1)
-			atomic.StoreInt64(&stats.deactivateAt, 0)
-			defer func() {
-				if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
-					atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
-				}
-			}()
-			conn = &statsPacketConn{conn, &stats.uplink, &stats.downlink}
 		}
+		atomic.AddInt32(&stats.udpConn, 1)
+		atomic.AddUint32(&stats.udpConnTotal, 1)
+		atomic.StoreInt64(&stats.deactivateAt, 0)
+		defer func() {
+			if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
+				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
+			}
+		}()
+		conn = &statsPacketConn{conn, &stats.uplink, &stats.downlink}
 	}
 
 	t.udpTable.Set(natKey, conn)
 
 	go sendTo()
 
-	buf := pool.Get(pool.RelayBufferSize)
+	buffer := pool.Get(pool.RelayBufferSize)
 
 	for {
-		n, addr, err := conn.ReadFrom(buf)
+		n, addr, err := conn.ReadFrom(buffer)
 		if err != nil {
 			break
 		}
@@ -391,9 +389,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			addr = nil
 		}
 		if addr, ok := addr.(*net.UDPAddr); ok {
-			_, err = writeBack(buf[:n], addr)
+			_, err = writeBack(buffer[:n], addr)
 		} else {
-			_, err = writeBack(buf[:n], nil)
+			_, err = writeBack(buffer[:n], nil)
 		}
 		if err != nil {
 			break
@@ -402,7 +400,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 
 	// close
 
-	_ = pool.Put(buf)
+	_ = pool.Put(buffer)
 	closeIgnore(conn, closer)
 	t.udpTable.Delete(natKey)
 }
