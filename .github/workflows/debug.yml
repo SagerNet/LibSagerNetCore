@@ -30,12 +30,8 @@ jobs:
           ./init.sh
           ./build.sh
           ls
-      - name: ZIP libcore
-        run: |
-          ls
-          zip -r libcore.zip ./build/
-      - name: Upload ZIP
+      - name: Upload libcore.aar
         uses: actions/upload-artifact@v1
         with:
           name: libcore
-          path: ./libcore.zip
+          path: ./libcore.aar
