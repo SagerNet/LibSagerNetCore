@@ -625,8 +625,8 @@ github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179 h1:sLv055kW5/TfTw
 github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179/go.mod h1:uqS1RdH2tYclOyhr9HiEIiWRFCeWfmNarJSiVCtrJD8=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844 h1:o7izBZde2L5foPbQdYisY03y4+6T6UcUXOwR5MyQpUk=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844/go.mod h1:2Xj8wyq0y6G6B1gCNTzRcKqo+cyVKatMTNWUmxNYfI4=
-github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92 h1:qTeBgE26RiffQ2MXb9DYNB6Vkbz8+0tnWYuiIrw01kk=
-github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
+github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0 h1:CgBslQ+PGq4cBhxnwUhe8m3XybetLZh70e/vjX7513Y=
+github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
 github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIOs=
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=

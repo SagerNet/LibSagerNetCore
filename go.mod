@@ -19,7 +19,7 @@ require (
 	gvisor.dev/gvisor v0.0.0
 )
 
-replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92
+replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0
 
 //replace github.com/v2fly/v2ray-core/v4 v4.42.2 => ../v2ray-core
 replace github.com/v2fly/v2ray-core/v4 v4.42.2 => github.com/sagernet/v2ray-core/v4 v4.42.2
