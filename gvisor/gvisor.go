@@ -1,6 +1,8 @@
 package gvisor
 
 import (
+	"github.com/sirupsen/logrus"
+	"github.com/v2fly/v2ray-core/v4/common/bytespool"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
@@ -10,7 +12,6 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 	"libcore/tun"
-	"log"
 	"os"
 )
 
@@ -29,7 +30,7 @@ func (t *GVisor) Close() error {
 const DefaultNIC tcpip.NICID = 0x01
 
 func New(dev *os.File, mtu int32, handler tun.Handler, nicId tcpip.NICID) (*GVisor, error) {
-	endpoint := &rwEndpoint{rw: dev, mtu: uint32(mtu)}
+	endpoint := &rwEndpoint{rw: dev, mtu: uint32(mtu), pool: bytespool.GetPool(mtu)}
 	s := stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
@@ -63,6 +64,6 @@ func New(dev *os.File, mtu int32, handler tun.Handler, nicId tcpip.NICID) (*GVis
 
 func gMust(err tcpip.Error) {
 	if err != nil {
-		log.Panicln(err.String())
+		logrus.Panicln(err.String())
 	}
 }
