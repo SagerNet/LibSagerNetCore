@@ -85,10 +85,8 @@ github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d/go.mod h1:H
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSiWQsof+nXEI9bUVUyV6F53Fp89EuCh2EAA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
-github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
-github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 h1:Hs82Z41s6SdL1CELW+XaDYmOH4hkBN4/N9og/AsOv7E=
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
@@ -598,7 +596,6 @@ github.com/prometheus/common v0.0.0-20181126121408-4724e9255275/go.mod h1:daVV7q
 github.com/prometheus/common v0.4.0/go.mod h1:TNfzLD0ON7rHzMJeJkieUDPYmFC7Snx/y86RQel1bk4=
 github.com/prometheus/common v0.4.1/go.mod h1:TNfzLD0ON7rHzMJeJkieUDPYmFC7Snx/y86RQel1bk4=
 github.com/prometheus/common v0.6.0/go.mod h1:eBmuwkDJBwy6iBfxCBob6t6dR6ENT/y+J+Zk0j9GMYc=
-github.com/prometheus/common v0.10.0 h1:RyRA7RzGXQZiW+tGMr7sxa85G1z0yOpM1qq5c8lNawc=
 github.com/prometheus/common v0.10.0/go.mod h1:Tlit/dnDKsSWFlCLTWaA1cyBgKHSMdTB80sz/V91rCo=
 github.com/prometheus/procfs v0.0.0-20180125133057-cb4147076ac7/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20180725123919-05ee40e3a273/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
@@ -625,14 +622,14 @@ github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179 h1:sLv055kW5/TfTw
 github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179/go.mod h1:uqS1RdH2tYclOyhr9HiEIiWRFCeWfmNarJSiVCtrJD8=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844 h1:o7izBZde2L5foPbQdYisY03y4+6T6UcUXOwR5MyQpUk=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844/go.mod h1:2Xj8wyq0y6G6B1gCNTzRcKqo+cyVKatMTNWUmxNYfI4=
-github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92 h1:qTeBgE26RiffQ2MXb9DYNB6Vkbz8+0tnWYuiIrw01kk=
-github.com/sagernet/gvisor v0.0.0-20210909160323-ce37d6df1e92/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
+github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0 h1:CgBslQ+PGq4cBhxnwUhe8m3XybetLZh70e/vjX7513Y=
+github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0/go.mod h1:m1RK/gef4nU1CWOFscQWVk7iUgGH2Hz9Ee+lgeCzOBo=
 github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIOs=
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=
 github.com/sagernet/sagerconnect v0.1.7/go.mod h1:BJo2SIUnKPyS7iG1xrFBhGlneYNKURT55YbsyTlu9MU=
-github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210917141623-9dbd599cee62 h1:+9pOCuVttLasDoxs6NrLwsBklZFttyjDm2UogTgcmfE=
-github.com/sagernet/v2ray-core/v4 v4.41.2-0.20210917141623-9dbd599cee62/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
+github.com/sagernet/v2ray-core/v4 v4.42.3-0.20210925135948-dc35363b0812 h1:asb6DDooYCK9Ev12AFyUea7PeH5hMHC2bHxE+VR4mAM=
+github.com/sagernet/v2ray-core/v4 v4.42.3-0.20210925135948-dc35363b0812/go.mod h1:MB2YZ6JUC0eNWXZHL2rDMG7S5vZqvC/8++lQgqnTOh4=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
@@ -1209,7 +1206,6 @@ google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQ
 google.golang.org/protobuf v1.27.1 h1:SnqbnDw1V7RiZcXPx5MEeqPv2s79L9i7BJUlG/+RurQ=
 google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 gopkg.in/airbrake/gobrake.v2 v2.0.9/go.mod h1:/h5ZAUhDkGaJfjzjKLSjv6zCL6O0LLBxU4K+aSYdM/U=
-gopkg.in/alecthomas/kingpin.v2 v2.2.6 h1:jMFz6MfLP0/4fUyZle81rXUoxOBFi19VUFKVDOQfozc=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

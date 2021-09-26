@@ -2,7 +2,7 @@ package gvisor
 
 import (
 	"fmt"
-	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/buffer"
@@ -26,13 +26,13 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 		srcAddr := net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))
 		src, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", srcAddr))
 		if err != nil {
-			log.Warn("[UDP] parse source address ", srcAddr, " failed: ", err)
+			logrus.Warn("[UDP] parse source address ", srcAddr, " failed: ", err)
 			return true
 		}
 		dstAddr := net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))
 		dst, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", dstAddr))
 		if err != nil {
-			log.Warn("[UDP] parse destination address ", dstAddr, " failed: ", err)
+			logrus.Warn("[UDP] parse destination address ", dstAddr, " failed: ", err)
 			return true
 		}
 

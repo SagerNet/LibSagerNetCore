@@ -2,7 +2,7 @@ package gvisor
 
 import (
 	"fmt"
-	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -27,13 +27,13 @@ func gTcpHandler(s *stack.Stack, handler tun.Handler) {
 		srcAddr := net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))
 		src, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", srcAddr))
 		if err != nil {
-			log.Warn("[TCP] parse source address ", srcAddr, " failed: ", err)
+			logrus.Warn("[TCP] parse source address ", srcAddr, " failed: ", err)
 			return
 		}
 		dstAddr := net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))
 		dst, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", dstAddr))
 		if err != nil {
-			log.Warn("[TCP] parse destination address ", dstAddr, " failed: ", err)
+			logrus.Warn("[TCP] parse destination address ", dstAddr, " failed: ", err)
 			return
 		}
 		go handler.NewConnection(src, dst, gonet.NewTCPConn(waitQueue, endpoint))

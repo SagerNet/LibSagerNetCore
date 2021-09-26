@@ -1,12 +1,13 @@
 package gvisor
 
 import (
-	"io"
-
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"io"
+	"sync"
+	"time"
 )
 
 var _ stack.LinkEndpoint = (*rwEndpoint)(nil)
@@ -14,7 +15,8 @@ var _ stack.LinkEndpoint = (*rwEndpoint)(nil)
 // rwEndpoint implements the interface of stack.LinkEndpoint from io.ReadWriter.
 type rwEndpoint struct {
 	// rw is the io.ReadWriter for reading and writing packets.
-	rw io.ReadWriter
+	rw   io.ReadWriter
+	pool *sync.Pool
 
 	// mtu (maximum transmission unit) is the maximum size of a packet.
 	mtu uint32
@@ -36,29 +38,37 @@ func (e *rwEndpoint) IsAttached() bool {
 
 // dispatchLoop dispatches packets to upper layer.
 func (e *rwEndpoint) dispatchLoop() {
+	for !e.IsAttached() {
+		time.Sleep(100)
+	}
 	for {
-		packet := make([]byte, e.mtu)
-
+		packet := e.pool.Get().([]byte)
 		n, err := e.rw.Read(packet)
 		if err != nil {
+			e.pool.Put(packet)
 			break
 		}
-
-		if !e.IsAttached() {
-			continue
-		}
-
-		pkb := stack.NewPacketBuffer(stack.PacketBufferOptions{
-			Data: buffer.NewVectorisedView(n, []buffer.View{buffer.NewViewFromBytes(packet)}),
-		})
-
-		switch header.IPVersion(packet) {
-		case header.IPv4Version:
-			e.dispatcher.DeliverNetworkPacket("", "", header.IPv4ProtocolNumber, pkb)
-		case header.IPv6Version:
-			e.dispatcher.DeliverNetworkPacket("", "", header.IPv6ProtocolNumber, pkb)
-		}
+		e.processPacket(n, packet)
 	}
+}
+
+func (e *rwEndpoint) processPacket(n int, packet []byte) {
+	defer e.pool.Put(packet)
+
+	var networkProtocol tcpip.NetworkProtocolNumber
+	switch header.IPVersion(packet) {
+	case header.IPv4Version:
+		networkProtocol = header.IPv4ProtocolNumber
+	case header.IPv6Version:
+		networkProtocol = header.IPv6ProtocolNumber
+	default:
+		return
+	}
+
+	buf := stack.NewPacketBuffer(stack.PacketBufferOptions{
+		Data: buffer.NewVectorisedView(n, []buffer.View{buffer.NewViewFromBytes(packet)}),
+	})
+	go e.dispatcher.DeliverNetworkPacket("", "", networkProtocol, buf)
 }
 
 func (e *rwEndpoint) writePacket(pkt *stack.PacketBuffer) tcpip.Error {
@@ -88,7 +98,12 @@ func (e *rwEndpoint) WritePackets(_ stack.RouteInfo, pkts stack.PacketBufferList
 }
 
 func (e *rwEndpoint) WriteRawPacket(packetBuffer *stack.PacketBuffer) tcpip.Error {
-	return &tcpip.ErrNotSupported{}
+	vView := buffer.NewVectorisedView(packetBuffer.Size(), packetBuffer.Views())
+
+	if _, err := e.rw.Write(vView.ToView()); err != nil {
+		return &tcpip.ErrInvalidEndpointState{}
+	}
+	return nil
 }
 
 // MTU implements stack.LinkEndpoint.MTU.

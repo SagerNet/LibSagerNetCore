@@ -21,7 +21,7 @@ import (
 )
 
 func GetV2RayVersion() string {
-	return core.Version() + "-sn-1"
+	return core.Version() + "-sn-2"
 }
 
 type V2RayInstance struct {
@@ -43,24 +43,20 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	defer instance.access.Unlock()
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
-		if strings.HasSuffix(err.Error(), "not found in geoip.dat") || strings.HasSuffix(err.Error(), "geoip.dat: no such file or directory") {
+		if strings.HasSuffix(err.Error(), "geoip.dat: no such file or directory") {
 			err = extractAssetName(geoipDat, true)
-			if err != nil {
-				return err
-			}
-		} else if strings.HasSuffix(err.Error(), "not found in geosite.dat") || strings.HasSuffix(err.Error(), "geosite.dat: no such file or directory") {
+		} else if strings.HasSuffix(err.Error(), "not found in geoip.dat") {
+			err = extractAssetName(geoipDat, false)
+		} else if strings.HasSuffix(err.Error(), "geosite.dat: no such file or directory") {
 			err = extractAssetName(geositeDat, true)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
+		} else if strings.HasSuffix(err.Error(), "not found in geosite.dat") {
+			err = extractAssetName(geositeDat, false)
 		}
-
-		config, err = serial.LoadJSONConfig(strings.NewReader(content))
-		if err != nil {
-			return err
+		if err == nil {
+			config, err = serial.LoadJSONConfig(strings.NewReader(content))
 		}
+	}
+	if err != nil {
 		return err
 	}
 	if forTest {
