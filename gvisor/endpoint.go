@@ -1,15 +1,13 @@
 package gvisor
 
 import (
-	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
-	"io"
-	"sync"
-	"time"
-
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"io"
+	"sync"
+	"time"
 )
 
 var _ stack.LinkEndpoint = (*rwEndpoint)(nil)
@@ -40,19 +38,17 @@ func (e *rwEndpoint) IsAttached() bool {
 
 // dispatchLoop dispatches packets to upper layer.
 func (e *rwEndpoint) dispatchLoop() {
+	for !e.IsAttached() {
+		time.Sleep(100)
+	}
 	for {
-		if !e.IsAttached() {
-			time.Sleep(100)
-			continue
-		}
-
 		packet := e.pool.Get().([]byte)
 		n, err := e.rw.Read(packet)
 		if err != nil {
 			e.pool.Put(packet)
 			break
 		}
-		go e.processPacket(n, packet)
+		e.processPacket(n, packet)
 	}
 }
 
@@ -60,26 +56,19 @@ func (e *rwEndpoint) processPacket(n int, packet []byte) {
 	defer e.pool.Put(packet)
 
 	var networkProtocol tcpip.NetworkProtocolNumber
-	var transportProtocol tcpip.TransportProtocolNumber
 	switch header.IPVersion(packet) {
 	case header.IPv4Version:
 		networkProtocol = header.IPv4ProtocolNumber
-		transportProtocol = header.IPv4(packet).TransportProtocol()
 	case header.IPv6Version:
 		networkProtocol = header.IPv6ProtocolNumber
-		transportProtocol = header.IPv6(packet).TransportProtocol()
+	default:
+		return
 	}
-	var buf *stack.PacketBuffer
-	if transportProtocol != udp.ProtocolNumber {
-		buf = stack.NewPacketBuffer(stack.PacketBufferOptions{
-			Data: buffer.NewVectorisedView(n, []buffer.View{packet}),
-		})
-	} else {
-		buf = stack.NewPacketBuffer(stack.PacketBufferOptions{
-			Data: buffer.NewVectorisedView(n, []buffer.View{buffer.NewViewFromBytes(packet)}),
-		})
-	}
-	e.dispatcher.DeliverNetworkPacket("", "", networkProtocol, buf)
+
+	buf := stack.NewPacketBuffer(stack.PacketBufferOptions{
+		Data: buffer.NewVectorisedView(n, []buffer.View{buffer.NewViewFromBytes(packet)}),
+	})
+	go e.dispatcher.DeliverNetworkPacket("", "", networkProtocol, buf)
 }
 
 func (e *rwEndpoint) writePacket(pkt *stack.PacketBuffer) tcpip.Error {
