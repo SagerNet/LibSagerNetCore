@@ -2,9 +2,9 @@ package libcore
 
 import (
 	"context"
-	"errors"
 	"github.com/Dreamacro/clash/common/pool"
 	"github.com/miekg/dns"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
@@ -19,8 +19,10 @@ import (
 	"libcore/gvisor"
 	"libcore/lwip"
 	"libcore/tun"
+	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,6 +45,7 @@ type Tun2ray struct {
 	dumpUid      bool
 	trafficStats bool
 	appStats     map[uint16]*appStats
+	pcap         bool
 }
 
 const (
@@ -50,7 +53,10 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, overrideDestination bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
+	router string, gVisor bool, hijackDns bool, sniffing bool,
+	overrideDestination bool, fakedns bool, debug bool,
+	dumpUid bool, trafficStats bool, pcap bool) (*Tun2ray, error) {
 	/*	if fd < 0 {
 			return nil, errors.New("must provide a valid TUN file descriptor")
 		}
@@ -83,7 +89,21 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 	}
 	var err error
 	if gVisor {
-		t.dev, err = gvisor.New(fd, mtu, t, gvisor.DefaultNIC)
+		var pcapFile *os.File
+		if pcap {
+			path := time.Now().UTC().String()
+			path = externalAssetsPath + "/pcap/" + path + ".pcap"
+			err = os.MkdirAll(filepath.Dir(path), 0755)
+			if err != nil {
+				return nil, errors.WithMessage(err, "unable to create pcap dir")
+			}
+			pcapFile, err = os.Create(path)
+			if err != nil {
+				return nil, errors.WithMessage(err, "unable to create pcap file")
+			}
+		}
+
+		t.dev, err = gvisor.New(fd, mtu, t, gvisor.DefaultNIC, pcap, pcapFile, math.MaxUint32)
 	} else {
 		dev := os.NewFile(uintptr(fd), "")
 		if dev == nil {
