@@ -2,9 +2,9 @@ package gvisor
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/v2fly/v2ray-core/v4/common/bytespool"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
+	"gvisor.dev/gvisor/pkg/tcpip/link/sniffer"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -19,18 +19,30 @@ var _ tun.Tun = (*GVisor)(nil)
 
 type GVisor struct {
 	Endpoint stack.LinkEndpoint
+	PcapFile *os.File
 	Stack    *stack.Stack
 }
 
 func (t *GVisor) Close() error {
 	t.Stack.Close()
+	if t.PcapFile != nil {
+		_ = t.PcapFile.Close()
+	}
 	return nil
 }
 
 const DefaultNIC tcpip.NICID = 0x01
 
-func New(dev *os.File, mtu int32, handler tun.Handler, nicId tcpip.NICID) (*GVisor, error) {
-	endpoint := &rwEndpoint{rw: dev, mtu: uint32(mtu), pool: bytespool.GetPool(mtu)}
+func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32) (*GVisor, error) {
+	var endpoint stack.LinkEndpoint
+	endpoint, _ = newRwEndpoint(dev, mtu)
+	if pcap {
+		pcap, err := sniffer.NewWithWriter(endpoint, pcapFile, snapLen)
+		if err != nil {
+			return nil, err
+		}
+		endpoint = pcap
+	}
 	s := stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
@@ -59,7 +71,7 @@ func New(dev *os.File, mtu int32, handler tun.Handler, nicId tcpip.NICID) (*GVis
 	gMust(s.SetSpoofing(nicId, true))
 	gMust(s.SetPromiscuousMode(nicId, true))
 
-	return &GVisor{endpoint, s}, nil
+	return &GVisor{endpoint, pcapFile, s}, nil
 }
 
 func gMust(err tcpip.Error) {

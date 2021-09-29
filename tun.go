@@ -2,9 +2,9 @@ package libcore
 
 import (
 	"context"
-	"errors"
 	"github.com/Dreamacro/clash/common/pool"
 	"github.com/miekg/dns"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
@@ -12,13 +12,17 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	v2rayDns "github.com/v2fly/v2ray-core/v4/features/dns"
+	"github.com/v2fly/v2ray-core/v4/transport"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
+	"github.com/v2fly/v2ray-core/v4/transport/pipe"
 	"io"
 	"libcore/gvisor"
 	"libcore/lwip"
 	"libcore/tun"
+	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -41,6 +45,7 @@ type Tun2ray struct {
 	dumpUid      bool
 	trafficStats bool
 	appStats     map[uint16]*appStats
+	pcap         bool
 }
 
 const (
@@ -48,7 +53,10 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, hijackDns bool, sniffing bool, overrideDestination bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool) (*Tun2ray, error) {
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
+	router string, gVisor bool, hijackDns bool, sniffing bool,
+	overrideDestination bool, fakedns bool, debug bool,
+	dumpUid bool, trafficStats bool, pcap bool) (*Tun2ray, error) {
 	/*	if fd < 0 {
 			return nil, errors.New("must provide a valid TUN file descriptor")
 		}
@@ -57,10 +65,6 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 		if err != nil {
 			return nil, err
 		}*/
-	dev := os.NewFile(uintptr(fd), "")
-	if dev == nil {
-		return nil, errors.New("failed to open TUN file descriptor")
-	}
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -85,8 +89,26 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor
 	}
 	var err error
 	if gVisor {
-		t.dev, err = gvisor.New(dev, mtu, t, gvisor.DefaultNIC)
+		var pcapFile *os.File
+		if pcap {
+			path := time.Now().UTC().String()
+			path = externalAssetsPath + "/pcap/" + path + ".pcap"
+			err = os.MkdirAll(filepath.Dir(path), 0755)
+			if err != nil {
+				return nil, errors.WithMessage(err, "unable to create pcap dir")
+			}
+			pcapFile, err = os.Create(path)
+			if err != nil {
+				return nil, errors.WithMessage(err, "unable to create pcap file")
+			}
+		}
+
+		t.dev, err = gvisor.New(fd, mtu, t, gvisor.DefaultNIC, pcap, pcapFile, math.MaxUint32)
 	} else {
+		dev := os.NewFile(uintptr(fd), "")
+		if dev == nil {
+			return nil, errors.New("failed to open TUN file descriptor")
+		}
 		t.dev, err = lwip.New(dev, mtu, t)
 	}
 	if err != nil {
@@ -178,7 +200,8 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		}
 	}
 
-	ctx := session.ContextWithInbound(context.Background(), inbound)
+	ctx := core.WithContext(context.Background(), t.v2ray.core)
+	ctx = session.ContextWithInbound(ctx, inbound)
 
 	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
@@ -198,13 +221,6 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		ctx = session.ContextWithContent(ctx, &session.Content{
 			SniffingRequest: req,
 		})
-	}
-
-	link, err := t.v2ray.dispatcher.Dispatch(core.WithContext(ctx, t.v2ray.core), destination)
-
-	if err != nil {
-		logrus.Errorf("[TCP] dial failed: %s", err.Error())
-		return
 	}
 
 	if t.trafficStats && !self && !isDns {
@@ -229,15 +245,23 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		conn = &statsConn{conn, &stats.uplink, &stats.downlink}
 	}
 
-	_ = task.Run(ctx, func() error {
-		_ = buf.Copy(buf.NewReader(conn), link.Writer)
-		return io.EOF
-	}, func() error {
-		_ = buf.Copy(link.Reader, buf.NewWriter(conn))
-		return io.EOF
-	})
+	reader, input := pipe.New()
+	link := &transport.Link{Reader: reader, Writer: connWriter{conn, buf.NewWriter(conn)}}
+	err := t.v2ray.dispatcher.DispatchLink(ctx, destination, link)
+	if err != nil {
+		logrus.Errorf("[TCP] dispatchLink failed: %s", err.Error())
+	} else {
+		_ = task.Run(ctx, func() error {
+			return buf.Copy(buf.NewReader(conn), input)
+		})
+	}
 
 	closeIgnore(conn, link.Reader, link.Writer)
+}
+
+type connWriter struct {
+	net.Conn
+	buf.Writer
 }
 
 func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer) {
