@@ -11,6 +11,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"io"
 	"libcore/tun"
 	"os"
 )
@@ -37,11 +38,11 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 	var endpoint stack.LinkEndpoint
 	endpoint, _ = newRwEndpoint(dev, mtu)
 	if pcap {
-		pcap, err := sniffer.NewWithWriter(endpoint, pcapFile, snapLen)
+		pcapEndpoint, err := sniffer.NewWithWriter(endpoint, &pcapFileWrapper{pcapFile}, snapLen)
 		if err != nil {
 			return nil, err
 		}
-		endpoint = pcap
+		endpoint = pcapEndpoint
 	}
 	s := stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
@@ -72,6 +73,18 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 	gMust(s.SetPromiscuousMode(nicId, true))
 
 	return &GVisor{endpoint, pcapFile, s}, nil
+}
+
+type pcapFileWrapper struct {
+	io.Writer
+}
+
+func (w *pcapFileWrapper) Write(p []byte) (n int, err error) {
+	n, err = w.Writer.Write(p)
+	if err != nil {
+		logrus.Debug("write pcap file failed: ", err)
+	}
+	return n, nil
 }
 
 func gMust(err tcpip.Error) {
