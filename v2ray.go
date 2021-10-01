@@ -38,7 +38,7 @@ func NewV2rayInstance() *V2RayInstance {
 	return &V2RayInstance{}
 }
 
-func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
+func (instance *V2RayInstance) LoadConfig(content string) error {
 	instance.access.Lock()
 	defer instance.access.Unlock()
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
@@ -58,10 +58,6 @@ func (instance *V2RayInstance) LoadConfig(content string, forTest bool) error {
 	}
 	if err != nil {
 		return err
-	}
-	if forTest {
-		config.Inbound = nil
-		config.App = config.App[:4]
 	}
 	c, err := core.New(config)
 	if err != nil {

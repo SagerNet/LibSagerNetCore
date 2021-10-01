@@ -23,7 +23,7 @@ require (
 replace gvisor.dev/gvisor v0.0.0 => github.com/sagernet/gvisor v0.0.0-20210925041908-687b7905dba0
 
 //replace github.com/v2fly/v2ray-core/v4 v4.42.2 => ../v2ray-core
-replace github.com/v2fly/v2ray-core/v4 v4.42.2 => github.com/sagernet/v2ray-core/v4 v4.42.3-0.20210930071517-c2a3f7c73c82
+replace github.com/v2fly/v2ray-core/v4 v4.42.2 => github.com/sagernet/v2ray-core/v4 v4.42.3-0.20211001035709-8747d630e906
 
 replace github.com/Dreamacro/clash v1.6.5 => github.com/sagernet/clash v1.6.5-0.20210913182617-681dd3780179
 
