@@ -4,7 +4,6 @@ import (
 	"github.com/sagernet/libping"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"os"
-	"runtime"
 )
 
 func Setenv(key, value string) error {
@@ -17,10 +16,6 @@ func Unsetenv(key string) error {
 
 func IcmpPing(address string, timeout int32) (int32, error) {
 	return libping.IcmpPing(address, timeout)
-}
-
-func Gc() {
-	runtime.GC()
 }
 
 func closeIgnore(closer ...interface{}) {

@@ -11,6 +11,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"io"
 	"libcore/tun"
 	"os"
 )
@@ -33,28 +34,55 @@ func (t *GVisor) Close() error {
 
 const DefaultNIC tcpip.NICID = 0x01
 
-func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32) (*GVisor, error) {
+func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32, ipv6Mode int32) (*GVisor, error) {
 	var endpoint stack.LinkEndpoint
 	endpoint, _ = newRwEndpoint(dev, mtu)
 	if pcap {
-		pcap, err := sniffer.NewWithWriter(endpoint, pcapFile, snapLen)
+		pcapEndpoint, err := sniffer.NewWithWriter(endpoint, &pcapFileWrapper{pcapFile}, snapLen)
 		if err != nil {
 			return nil, err
 		}
-		endpoint = pcap
+		endpoint = pcapEndpoint
 	}
-	s := stack.New(stack.Options{
-		NetworkProtocols: []stack.NetworkProtocolFactory{
-			ipv4.NewProtocol,
-			ipv6.NewProtocol,
-		},
-		TransportProtocols: []stack.TransportProtocolFactory{
-			tcp.NewProtocol,
-			udp.NewProtocol,
-			icmp.NewProtocol4,
-			icmp.NewProtocol6,
-		},
-	})
+	var o stack.Options
+	switch ipv6Mode {
+	case 0:
+		o = stack.Options{
+			NetworkProtocols: []stack.NetworkProtocolFactory{
+				ipv4.NewProtocol,
+			},
+			TransportProtocols: []stack.TransportProtocolFactory{
+				tcp.NewProtocol,
+				udp.NewProtocol,
+				icmp.NewProtocol4,
+			},
+		}
+	case 3:
+		o = stack.Options{
+			NetworkProtocols: []stack.NetworkProtocolFactory{
+				ipv6.NewProtocol,
+			},
+			TransportProtocols: []stack.TransportProtocolFactory{
+				tcp.NewProtocol,
+				udp.NewProtocol,
+				icmp.NewProtocol6,
+			},
+		}
+	default:
+		o = stack.Options{
+			NetworkProtocols: []stack.NetworkProtocolFactory{
+				ipv4.NewProtocol,
+				ipv6.NewProtocol,
+			},
+			TransportProtocols: []stack.TransportProtocolFactory{
+				tcp.NewProtocol,
+				udp.NewProtocol,
+				icmp.NewProtocol4,
+				icmp.NewProtocol6,
+			},
+		}
+	}
+	s := stack.New(o)
 	s.SetRouteTable([]tcpip.Route{
 		{
 			Destination: header.IPv4EmptySubnet,
@@ -72,6 +100,18 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 	gMust(s.SetPromiscuousMode(nicId, true))
 
 	return &GVisor{endpoint, pcapFile, s}, nil
+}
+
+type pcapFileWrapper struct {
+	io.Writer
+}
+
+func (w *pcapFileWrapper) Write(p []byte) (n int, err error) {
+	n, err = w.Writer.Write(p)
+	if err != nil {
+		logrus.Debug("write pcap file failed: ", err)
+	}
+	return n, nil
 }
 
 func gMust(err tcpip.Error) {
