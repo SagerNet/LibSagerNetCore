@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v4"
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 )
 
@@ -18,7 +17,7 @@ func (instance *V2RayInstance) DialHTTP(inbound string, timeout int32, link stri
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Millisecond,
 		DisableKeepAlives:   true,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := v2rayNet.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
+			dest, err := net.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
 			if err != nil {
 				return nil, err
 			}

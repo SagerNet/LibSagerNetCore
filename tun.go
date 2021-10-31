@@ -13,7 +13,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
-	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"

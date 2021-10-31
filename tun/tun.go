@@ -2,9 +2,8 @@ package tun
 
 import (
 	"io"
-	"net"
 
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/net"
 )
 
 type Tun interface {
@@ -12,6 +11,6 @@ type Tun interface {
 }
 
 type Handler interface {
-	NewConnection(source v2rayNet.Destination, destination v2rayNet.Destination, conn net.Conn)
-	NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer)
+	NewConnection(source net.Destination, destination net.Destination, conn net.Conn)
+	NewPacket(source net.Destination, destination net.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer)
 }

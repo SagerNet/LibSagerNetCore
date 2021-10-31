@@ -3,12 +3,11 @@ package libcore
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
-	core "github.com/v2fly/v2ray-core/v4"
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 )
 
@@ -39,7 +38,7 @@ func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Co
 
 func UrlTestV2ray(instance *V2RayInstance, inbound string, link string, timeout int32) (int32, error) {
 	return urlTest(func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dest, err := v2rayNet.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
+		dest, err := net.ParseDestination(fmt.Sprintf("%s:%s", network, addr))
 		if err != nil {
 			return nil, err
 		}
