@@ -3,7 +3,6 @@ package libcore
 import (
 	"context"
 	"github.com/miekg/dns"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
@@ -94,11 +93,11 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 			path = externalAssetsPath + "/pcap/" + path + ".pcap"
 			err = os.MkdirAll(filepath.Dir(path), 0755)
 			if err != nil {
-				return nil, errors.WithMessage(err, "unable to create pcap dir")
+				return nil, newError("unable to create pcap dir").Base(err)
 			}
 			pcapFile, err = os.Create(path)
 			if err != nil {
-				return nil, errors.WithMessage(err, "unable to create pcap file")
+				return nil, newError("unable to create pcap file").Base(err)
 			}
 		}
 
@@ -106,7 +105,7 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 	} else {
 		dev := os.NewFile(uintptr(fd), "")
 		if dev == nil {
-			return nil, errors.New("failed to open TUN file descriptor")
+			return nil, newError("failed to open TUN file descriptor")
 		}
 		t.dev, err = lwip.New(dev, mtu, t)
 	}

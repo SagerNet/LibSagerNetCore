@@ -3,7 +3,6 @@ package libcore
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/v2fly/v2ray-core/v4"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
@@ -31,7 +30,7 @@ func (instance *V2RayInstance) DialHTTP(inbound string, timeout int32, link stri
 	req, err := http.NewRequestWithContext(context.Background(), "GET", link, nil)
 	req.Header.Set("User-Agent", "curl/7.74.0")
 	if err != nil {
-		return "", errors.WithMessage(err, "create get request")
+		return "", newError("create get request").Base(err)
 	}
 	resp, err := (&http.Client{
 		Transport: transport,
@@ -41,11 +40,11 @@ func (instance *V2RayInstance) DialHTTP(inbound string, timeout int32, link stri
 		return "", err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.Errorf("HTTP %d", resp.StatusCode)
+		return "", newError("HTTP ", resp.StatusCode)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.WithMessage(err, "read body")
+		return "", newError("read body").Base(err)
 	}
 	return string(body), nil
 }
