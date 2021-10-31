@@ -27,7 +27,7 @@ func (p *obfsLocalPlugin) Init(_ string, _ string, _ string, remotePort string, 
 		return newError("obfs-local: failed to parse plugin options").Base(err)
 	}
 
-	var mode = "http"
+	mode := "http"
 
 	if s, ok := options.Get("obfs"); ok {
 		mode = s

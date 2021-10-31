@@ -1,15 +1,16 @@
 package libcore
 
 import (
-	"github.com/sagernet/gomobile/asset"
-	"github.com/sirupsen/logrus"
-	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	"github.com/sagernet/gomobile/asset"
+	"github.com/sirupsen/logrus"
+	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 )
 
 const (
@@ -21,13 +22,17 @@ const (
 	coreVersion      = "core.version.txt"
 )
 
-var assetsPrefix string
-var internalAssetsPath string
-var externalAssetsPath string
+var (
+	assetsPrefix       string
+	internalAssetsPath string
+	externalAssetsPath string
+)
 
-var useOfficialAssets bool
-var extracted map[string]bool
-var assetsAccess *sync.Mutex
+var (
+	useOfficialAssets bool
+	extracted         map[string]bool
+	assetsAccess      *sync.Mutex
+)
 
 type BoolFunc interface {
 	Invoke() bool
@@ -191,7 +196,6 @@ func extractAssetName(name string, force bool) error {
 	err := extractAsset(assetsPrefix+name+".xz", dir+name)
 	if err == nil {
 		err = unxz(dir + name)
-
 	}
 	if err != nil {
 		return err

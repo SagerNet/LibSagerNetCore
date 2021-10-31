@@ -3,12 +3,13 @@ package libcore
 import (
 	"bytes"
 	"flag"
+	"strconv"
+
 	"github.com/Dreamacro/clash/transport/ssr/obfs"
 	"github.com/Dreamacro/clash/transport/ssr/protocol"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/proxy/shadowsocks"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
-	"strconv"
 )
 
 var (
@@ -54,7 +55,6 @@ func (p *shadowsocksrPlugin) Init(_ string, _ string, remoteHost string, remoteP
 		IVSize: int(account.Cipher.IVSize()),
 		Param:  p.obfsParam,
 	})
-
 	if err != nil {
 		return newError("failed to create ssr obfs").Base(err)
 	}

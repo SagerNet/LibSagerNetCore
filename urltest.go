@@ -3,12 +3,13 @@ package libcore
 import (
 	"context"
 	"fmt"
-	core "github.com/v2fly/v2ray-core/v4"
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
-	"github.com/v2fly/v2ray-core/v4/common/session"
 	"net"
 	"net/http"
 	"time"
+
+	core "github.com/v2fly/v2ray-core/v4"
+	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
 )
 
 func urlTest(dialContext func(ctx context.Context, network, addr string) (net.Conn, error), link string, timeout int32) (int32, error) {

@@ -1,9 +1,10 @@
 package libcore
 
 import (
+	"os"
+
 	"github.com/sagernet/libping"
 	"github.com/v2fly/v2ray-core/v4/common"
-	"os"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen

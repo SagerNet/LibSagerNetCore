@@ -3,13 +3,14 @@ package libcore
 import (
 	"context"
 	"fmt"
-	"github.com/v2fly/v2ray-core/v4"
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
-	"github.com/v2fly/v2ray-core/v4/common/session"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/v2fly/v2ray-core/v4"
+	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
 )
 
 func (instance *V2RayInstance) DialHTTP(inbound string, timeout int32, link string) (string, error) {
