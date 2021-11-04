@@ -2,18 +2,6 @@ package libcore
 
 import (
 	"context"
-	"github.com/miekg/dns"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	core "github.com/v2fly/v2ray-core/v4"
-	"github.com/v2fly/v2ray-core/v4/common/buf"
-	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
-	"github.com/v2fly/v2ray-core/v4/common/session"
-	"github.com/v2fly/v2ray-core/v4/common/task"
-	v2rayDns "github.com/v2fly/v2ray-core/v4/features/dns"
-	"github.com/v2fly/v2ray-core/v4/transport"
-	"github.com/v2fly/v2ray-core/v4/transport/internet"
-	"github.com/v2fly/v2ray-core/v4/transport/pipe"
 	"io"
 	"libcore/gvisor"
 	"libcore/lwip"
@@ -25,15 +13,24 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
+	v2rayDns "github.com/v2fly/v2ray-core/v4/features/dns"
+	"github.com/v2fly/v2ray-core/v4/transport"
+	"github.com/v2fly/v2ray-core/v4/transport/internet"
+	"github.com/v2fly/v2ray-core/v4/transport/pipe"
 )
 
 var _ tun.Handler = (*Tun2ray)(nil)
 
 type Tun2ray struct {
-	access              sync.Mutex
+	access              sync.RWMutex
 	dev                 tun.Tun
 	router              string
-	hijackDns           bool
 	v2ray               *V2RayInstance
 	udpTable            *natTable
 	fakedns             bool
@@ -52,19 +49,7 @@ const (
 	appStatusBackground = "background"
 )
 
-func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
-	router string, gVisor bool, hijackDns bool, sniffing bool,
-	overrideDestination bool, fakedns bool, debug bool,
-	dumpUid bool, trafficStats bool, pcap bool) (*Tun2ray, error) {
-	/*	if fd < 0 {
-			return nil, errors.New("must provide a valid TUN file descriptor")
-		}
-		// Make a copy of `fd` so that os.File's finalizer doesn't close `fd`.
-		newFd, err := unix.Dup(int(fd))
-		if err != nil {
-			return nil, err
-		}*/
-
+func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance, router string, gVisor bool, sniffing bool, overrideDestination bool, fakedns bool, debug bool, dumpUid bool, trafficStats bool, pcap bool) (*Tun2ray, error) {
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
@@ -72,7 +57,6 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 	}
 	t := &Tun2ray{
 		router:              router,
-		hijackDns:           hijackDns,
 		v2ray:               v2ray,
 		udpTable:            &natTable{},
 		sniffing:            sniffing,
@@ -92,13 +76,13 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 		if pcap {
 			path := time.Now().UTC().String()
 			path = externalAssetsPath + "/pcap/" + path + ".pcap"
-			err = os.MkdirAll(filepath.Dir(path), 0755)
+			err = os.MkdirAll(filepath.Dir(path), 0o755)
 			if err != nil {
-				return nil, errors.WithMessage(err, "unable to create pcap dir")
+				return nil, newError("unable to create pcap dir").Base(err)
 			}
 			pcapFile, err = os.Create(path)
 			if err != nil {
-				return nil, errors.WithMessage(err, "unable to create pcap file")
+				return nil, newError("unable to create pcap file").Base(err)
 			}
 		}
 
@@ -106,7 +90,7 @@ func NewTun2ray(fd int32, mtu int32, v2ray *V2RayInstance,
 	} else {
 		dev := os.NewFile(uintptr(fd), "")
 		if dev == nil {
-			return nil, errors.New("failed to open TUN file descriptor")
+			return nil, newError("failed to open TUN file descriptor")
 		}
 		t.dev, err = lwip.New(dev, mtu, t)
 	}
@@ -160,7 +144,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		Tag:    "socks",
 	}
 
-	isDns := destination.Address.String() == t.router || destination.Port == 53
+	isDns := destination.Address.String() == t.router
 	if isDns {
 		inbound.Tag = "dns-in"
 	}
@@ -208,14 +192,11 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 			MetadataOnly: t.fakedns && !t.sniffing,
 			RouteOnly:    !t.overrideDestination,
 		}
-		if t.sniffing && t.fakedns {
-			req.OverrideDestinationForProtocol = []string{"fakedns", "http", "tls"}
+		if t.fakedns {
+			req.OverrideDestinationForProtocol = append(req.OverrideDestinationForProtocol, "fakedns")
 		}
-		if t.sniffing && !t.fakedns {
-			req.OverrideDestinationForProtocol = []string{"http", "tls"}
-		}
-		if !t.sniffing && t.fakedns {
-			req.OverrideDestinationForProtocol = []string{"fakedns"}
+		if t.sniffing {
+			req.OverrideDestinationForProtocol = append(req.OverrideDestinationForProtocol, "http", "tls")
 		}
 		ctx = session.ContextWithContent(ctx, &session.Content{
 			SniffingRequest: req,
@@ -223,7 +204,9 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	}
 
 	if t.trafficStats && !self && !isDns {
+		t.access.RLock()
 		stats := t.appStats[uid]
+		t.access.RUnlock()
 		if stats == nil {
 			t.access.Lock()
 			stats = t.appStats[uid]
@@ -250,9 +233,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	if err != nil {
 		logrus.Errorf("[TCP] dispatchLink failed: %s", err.Error())
 	} else {
-		_ = task.Run(ctx, func() error {
-			return buf.Copy(buf.NewReader(conn), input)
-		})
+		buf.Copy(buf.NewReader(conn), input)
 	}
 
 	closeIgnore(conn, link.Reader, link.Writer)
@@ -304,14 +285,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	}
 	isDns := destination.Address.String() == t.router
 
-	if !isDns && t.hijackDns {
-		dnsMsg := dns.Msg{}
-		err := dnsMsg.Unpack(data)
-		if err == nil && !dnsMsg.Response && len(dnsMsg.Question) > 0 {
-			isDns = true
-		}
-	}
-
 	if isDns {
 		inbound.Tag = "dns-in"
 	}
@@ -362,26 +335,33 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 
 	ctx := session.ContextWithInbound(context.Background(), inbound)
 
-	if !isDns && t.fakedns {
+	if !isDns && (t.sniffing || t.fakedns) {
+		req := session.SniffingRequest{
+			Enabled:      true,
+			MetadataOnly: t.fakedns && !t.sniffing,
+			RouteOnly:    !t.overrideDestination,
+		}
+		if t.fakedns {
+			req.OverrideDestinationForProtocol = append(req.OverrideDestinationForProtocol, "fakedns")
+		}
+		if t.sniffing {
+			req.OverrideDestinationForProtocol = append(req.OverrideDestinationForProtocol, "quic")
+		}
 		ctx = session.ContextWithContent(ctx, &session.Content{
-			SniffingRequest: session.SniffingRequest{
-				Enabled:                        true,
-				MetadataOnly:                   t.fakedns && !t.sniffing,
-				OverrideDestinationForProtocol: []string{"fakedns"},
-				RouteOnly:                      !t.overrideDestination,
-			},
+			SniffingRequest: req,
 		})
 	}
 
 	conn, err := t.v2ray.dialUDP(ctx, destination, time.Minute*5)
-
 	if err != nil {
 		logrus.Errorf("[UDP] dial failed: %s", err.Error())
 		return
 	}
 
 	if t.trafficStats && !self && !isDns {
+		t.access.RLock()
 		stats := t.appStats[uid]
+		t.access.RUnlock()
 		if stats == nil {
 			t.access.Lock()
 			stats = t.appStats[uid]
