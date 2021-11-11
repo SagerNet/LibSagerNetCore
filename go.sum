@@ -680,8 +680,8 @@ github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844 h1:o7izBZde2L5foPbQdYisY03y4+6T6UcUXOwR5MyQpUk=
 github.com/sagernet/gomobile v0.0.0-20210905032500-701a995ff844/go.mod h1:2Xj8wyq0y6G6B1gCNTzRcKqo+cyVKatMTNWUmxNYfI4=
-github.com/sagernet/gvisor v0.0.0-20211031111606-5e4a1bc5779f h1:hLimSKWG+pP9AY+nzs6tqbBPK76FCQmkKsYd40SF4/o=
-github.com/sagernet/gvisor v0.0.0-20211031111606-5e4a1bc5779f/go.mod h1:btyTBPTxT8AFMvW7yctFJ2nPCEDWZLpmKQEZ0gG+bbQ=
+github.com/sagernet/gvisor v0.0.0-20211111093733-436c20060cc1 h1:cjI/WSyrjOL1amyEvEZa/uPhm334BlzOq6I7d+nWcH8=
+github.com/sagernet/gvisor v0.0.0-20211111093733-436c20060cc1/go.mod h1:btyTBPTxT8AFMvW7yctFJ2nPCEDWZLpmKQEZ0gG+bbQ=
 github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIOs=
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=

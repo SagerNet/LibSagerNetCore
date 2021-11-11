@@ -2,14 +2,14 @@ package lwip
 
 import (
 	"fmt"
+	"libcore/lwip/core"
+	"libcore/tun"
 	"os"
 	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4/common/bytespool"
 	"github.com/v2fly/v2ray-core/v4/common/net"
-	"libcore/lwip/core"
-	"libcore/tun"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen

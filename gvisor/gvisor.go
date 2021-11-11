@@ -1,7 +1,9 @@
 package gvisor
 
 import (
+	"errors"
 	"io"
+	"libcore/tun"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -14,8 +16,9 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
-	"libcore/tun"
 )
+
+//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 var _ tun.Tun = (*GVisor)(nil)
 
@@ -119,4 +122,8 @@ func gMust(err tcpip.Error) {
 	if err != nil {
 		logrus.Panicln(err.String())
 	}
+}
+
+func tcpipErr(err tcpip.Error) error {
+	return errors.New(err.String())
 }
