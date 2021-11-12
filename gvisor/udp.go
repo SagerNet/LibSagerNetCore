@@ -2,7 +2,6 @@ package gvisor
 
 import (
 	"fmt"
-	"libcore/tun"
 	"net"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"libcore/tun"
 )
 
 func gUdpHandler(s *stack.Stack, handler tun.Handler) {

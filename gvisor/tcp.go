@@ -2,7 +2,6 @@ package gvisor
 
 import (
 	"fmt"
-	"libcore/tun"
 	"net"
 	"strconv"
 
@@ -11,6 +10,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/waiter"
+	"libcore/tun"
 )
 
 func gTcpHandler(s *stack.Stack, handler tun.Handler) {
