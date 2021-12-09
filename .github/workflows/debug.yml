@@ -11,8 +11,6 @@ on:
   pull_request:
     branches:
       - main
-  watch:
-      types: [started]
 
 jobs:
   build:
@@ -25,11 +23,10 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.17.3
+      - name: Init
+        run: ./init.sh
       - name: Build
-        run: |
-          ./init.sh
-          ./build.sh
-          ls
+        run: ./build.sh
       - name: Upload libcore.aar
         uses: actions/upload-artifact@v1
         with:
