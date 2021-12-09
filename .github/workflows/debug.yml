@@ -27,7 +27,6 @@ jobs:
         run: ./init.sh
       - name: Build
         run: ./build.sh
-        ls
       - name: Upload libcore.aar
         uses: actions/upload-artifact@v1
         with:
