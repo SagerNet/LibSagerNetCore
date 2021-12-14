@@ -23,9 +23,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/pipe"
 	"libcore/gvisor"
-	"libcore/lwip"
 	"libcore/nat"
-	"libcore/platform"
 	"libcore/tun"
 )
 
@@ -58,7 +56,6 @@ const (
 
 const (
 	TunImplementationGVisor = iota
-	TunImplementationLwIP
 	TunImplementationSystem
 )
 
@@ -115,12 +112,6 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		}
 
 		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, ipv6Mode)
-	case TunImplementationLwIP:
-		dev := os.NewFile(uintptr(config.FileDescriptor), "")
-		if dev == nil {
-			return nil, newError("failed to open TUN file descriptor")
-		}
-		t.dev, err = lwip.New(dev, config.MTU, t)
 	case TunImplementationSystem:
 		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, ipv6Mode, config.ErrorHandler.HandleError)
 	}
@@ -318,11 +309,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			closeIgnore(closer)
 			return
 		}
-	}
-
-	if platform.ShouldBlockConnection() {
-		newError("dropped new udp connection: too many file descriptors").WriteToLog()
-		return
 	}
 
 	inbound := &session.Inbound{
