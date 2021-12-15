@@ -258,10 +258,11 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	if err = task.Run(ctx, func() error {
 		return buf.Copy(buf.NewReader(conn), input)
 	}); err != nil {
+		closeIgnore(conn, link.Reader, link.Writer)
 		newError("connection finished: ", err).AtDebug().WriteToLog()
+	} else {
+		closeIgnore(conn, link.Writer, link.Reader)
 	}
-
-	closeIgnore(conn, link.Reader, link.Writer)
 
 	t.connectionsLock.Lock()
 	t.connections.Remove(element)
