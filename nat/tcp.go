@@ -7,6 +7,7 @@ import (
 	"github.com/Dreamacro/clash/common/cache"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"gvisor.dev/gvisor/pkg/tcpip"
+	"libcore/constant"
 )
 
 type tcpForwarder struct {
@@ -19,7 +20,7 @@ type tcpForwarder struct {
 func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 	var network string
 	address := &net.TCPAddr{}
-	if tun.ipv6Mode == 0 {
+	if tun.ipv6Mode == constant.IPv6Disable {
 		network = "tcp4"
 		address.IP = vlanClient4
 	} else {

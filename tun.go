@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/pipe"
+	"libcore/constant"
 	"libcore/gvisor"
 	"libcore/nat"
 	"libcore/tun"
@@ -49,16 +50,6 @@ type Tun2ray struct {
 	connections     list.List
 }
 
-const (
-	appStatusForeground = "foreground"
-	appStatusBackground = "background"
-)
-
-const (
-	TunImplementationGVisor = iota
-	TunImplementationSystem
-)
-
 type TunConfig struct {
 	FileDescriptor      int32
 	Protect             bool
@@ -66,6 +57,7 @@ type TunConfig struct {
 	MTU                 int32
 	V2Ray               *V2RayInstance
 	VLAN4Router         string
+	IPv6Mode            int32
 	Implementation      int32
 	Sniffing            bool
 	OverrideDestination bool
@@ -98,7 +90,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 
 	var err error
 	switch config.Implementation {
-	case TunImplementationGVisor:
+	case constant.TunImplementationGVisor:
 		var pcapFile *os.File
 		if config.PCap {
 			path := time.Now().UTC().String()
@@ -113,9 +105,9 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 			}
 		}
 
-		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, ipv6Mode)
-	case TunImplementationSystem:
-		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, ipv6Mode, config.ErrorHandler.HandleError)
+		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, config.IPv6Mode)
+	case constant.TunImplementationSystem:
+		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.IPv6Mode, config.ErrorHandler.HandleError)
 	}
 
 	if err != nil {
@@ -205,12 +197,6 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 			}
 
 			inbound.Uid = uint32(uid)
-
-			if uid == foregroundUid || uid == foregroundImeUid {
-				inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
-			} else {
-				inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
-			}
 		}
 	}
 
@@ -377,12 +363,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			}
 
 			inbound.Uid = uint32(uid)
-			if uid == foregroundUid || uid == foregroundImeUid {
-				inbound.AppStatus = append(inbound.AppStatus, appStatusForeground)
-			} else {
-				inbound.AppStatus = append(inbound.AppStatus, appStatusBackground)
-			}
-
 		}
 
 	}
@@ -508,10 +488,4 @@ func (c wrappedConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 
 func (c wrappedConn) WriteTo(p []byte, _ net.Addr) (n int, err error) {
 	return c.Conn.Write(p)
-}
-
-var ipv6Mode int32
-
-func SetIPv6Mode(mode int32) {
-	ipv6Mode = mode
 }
