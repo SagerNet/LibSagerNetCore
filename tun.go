@@ -61,6 +61,8 @@ const (
 
 type TunConfig struct {
 	FileDescriptor      int32
+	Protect             bool
+	Protector           Protector
 	MTU                 int32
 	V2Ray               *V2RayInstance
 	VLAN4Router         string
@@ -120,19 +122,38 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		return nil, err
 	}
 
+	if !config.Protect {
+		config.Protector = noopProtectorInstance
+	}
+
 	dc := config.V2Ray.dnsClient
 	internet.UseAlternativeSystemDialer(&protectedDialer{
+		protector: config.Protector,
 		resolver: func(domain string) ([]net.IP, error) {
 			return dc.LookupIP(domain)
 		},
 	})
 
-	nc := &net.Resolver{PreferGo: false}
+	nc := &net.Resolver{
+		PreferGo: config.Protect,
+	}
+
 	internet.UseAlternativeSystemDNSDialer(&protectedDialer{
+		protector: config.Protector,
 		resolver: func(domain string) ([]net.IP, error) {
 			return nc.LookupIP(context.Background(), "ip", domain)
 		},
 	})
+
+	if config.Protect {
+		nc.Dial = func(ctx context.Context, network, address string) (net.Conn, error) {
+			return config.V2Ray.dialContext(ctx, v2rayNet.Destination{
+				Address: v2rayNet.IPAddress([]byte{223, 5, 5, 5}),
+				Port:    53,
+				Network: v2rayNet.Network_TCP,
+			})
+		}
+	}
 
 	net.DefaultResolver.Dial = t.dialDNS
 	return t, nil
