@@ -14,11 +14,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/app/dns"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
+	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v4/transport"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/pipe"
@@ -54,6 +56,7 @@ type TunConfig struct {
 	FileDescriptor      int32
 	Protect             bool
 	Protector           Protector
+	SystemDNS           string
 	MTU                 int32
 	V2Ray               *V2RayInstance
 	VLAN4Router         string
@@ -126,26 +129,56 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		},
 	})
 
-	nc := &net.Resolver{
-		PreferGo: config.Protect,
+	ctx := core.WithContext(context.Background(), config.V2Ray.core)
+
+	if !config.Protect {
+		localdns.SetLookupFunc(nil)
+	} else if config.SystemDNS != "" {
+		systemDns := v2rayNet.Destination{
+			Address: v2rayNet.ParseAddress(config.SystemDNS),
+			Port:    53,
+			Network: v2rayNet.Network_UDP,
+		}
+		resolver := &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			conn, err := internet.DialSystem(ctx, systemDns, nil)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := conn.(net.PacketConn); !ok {
+				conn = &wrappedConn{conn}
+			}
+			return conn, nil
+		}}
+		localdns.SetLookupFunc(func(network, host string) ([]v2rayNet.IP, error) {
+			return resolver.LookupIP(context.Background(), network, host)
+		})
 	}
 
+	dnsConfig := &dns.Config{
+		NameServer: []*dns.NameServer{
+			{Address: &v2rayNet.Endpoint{Address: v2rayNet.NewIPOrDomain(v2rayNet.DomainAddress("localhost"))}},
+			{Address: &v2rayNet.Endpoint{Address: v2rayNet.NewIPOrDomain(v2rayNet.DomainAddress("https+local://dns.alidns.com/dns-query"))}},
+		},
+		DisableExpire:   true,
+		ContinueOnError: true,
+	}
+	bootstrapDns, err := dns.New(ctx, dnsConfig)
+	common.Must(err)
 	internet.UseAlternativeSystemDNSDialer(&protectedDialer{
 		protector: config.Protector,
 		resolver: func(domain string) ([]net.IP, error) {
-			return nc.LookupIP(context.Background(), "ip", domain)
+			switch domain {
+			case "dns.alidns.com":
+				return []net.IP{
+					{223, 5, 5, 5},
+					{223, 6, 6, 6},
+					{0x24, 0, 0x32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x1},
+					{0x24, 0, 0x32, 0, 0xba, 0xba, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x1},
+				}, nil
+			}
+			return bootstrapDns.LookupIP(domain)
 		},
 	})
-
-	if config.Protect {
-		nc.Dial = func(ctx context.Context, network, address string) (net.Conn, error) {
-			return config.V2Ray.dialContext(ctx, v2rayNet.Destination{
-				Address: v2rayNet.IPAddress([]byte{223, 5, 5, 5}),
-				Port:    53,
-				Network: v2rayNet.Network_TCP,
-			})
-		}
-	}
 
 	net.DefaultResolver.Dial = t.dialDNS
 	return t, nil
@@ -153,6 +186,8 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 
 func (t *Tun2ray) Close() {
 	net.DefaultResolver.Dial = nil
+	localdns.SetLookupFunc(nil)
+
 	closeIgnore(t.dev)
 	t.connectionsLock.Lock()
 	for item := t.connections.Front(); item != nil; item = item.Next() {
@@ -465,11 +500,11 @@ func (t *Tun2ray) dialDNS(ctx context.Context, _, _ string) (conn net.Conn, err 
 		SkipFakeDNS: true,
 	}), v2rayNet.Destination{
 		Network: v2rayNet.Network_UDP,
-		Address: v2rayNet.ParseAddress("1.0.0.1"),
+		Address: v2rayNet.ParseAddress(t.router),
 		Port:    53,
 	})
 	if err == nil {
-		conn = wrappedConn{conn}
+		conn = &wrappedConn{conn}
 	}
 	return
 }
@@ -478,7 +513,7 @@ type wrappedConn struct {
 	net.Conn
 }
 
-func (c wrappedConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+func (c *wrappedConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	n, err = c.Conn.Read(p)
 	if err == nil {
 		addr = c.Conn.RemoteAddr()
@@ -486,6 +521,6 @@ func (c wrappedConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	return
 }
 
-func (c wrappedConn) WriteTo(p []byte, _ net.Addr) (n int, err error) {
+func (c *wrappedConn) WriteTo(p []byte, _ net.Addr) (n int, err error) {
 	return c.Conn.Write(p)
 }

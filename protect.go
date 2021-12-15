@@ -52,7 +52,6 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 				break
 			} else {
 				logrus.Warn("dial system failed: ", err)
-				time.Sleep(time.Millisecond * 200)
 			}
 			logrus.Debug("trying next address: ", ip.String())
 		}
