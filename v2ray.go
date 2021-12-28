@@ -157,9 +157,10 @@ func (instance *V2RayInstance) dialUDP(ctx context.Context, destination net.Dest
 var _ packetConn = (*dispatcherConn)(nil)
 
 type dispatcherConn struct {
-	dest  net.Destination
-	link  *transport.Link
-	timer *signal.ActivityTimer
+	access sync.Mutex
+	dest   net.Destination
+	link   *transport.Link
+	timer  *signal.ActivityTimer
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -246,6 +247,9 @@ func (c *dispatcherConn) LocalAddr() net.Addr {
 }
 
 func (c *dispatcherConn) Close() error {
+	c.access.Lock()
+	defer c.access.Unlock()
+
 	select {
 	case <-c.ctx.Done():
 		return nil
