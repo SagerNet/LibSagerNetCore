@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	commonSerial "github.com/v2fly/v2ray-core/v4/common/serial"
+	"github.com/v2fly/v2ray-core/v4/proxy/vmess"
+	vmessOutbound "github.com/v2fly/v2ray-core/v4/proxy/vmess/outbound"
 	"io"
 	"strings"
 	"sync"
@@ -27,7 +30,7 @@ import (
 )
 
 func GetV2RayVersion() string {
-	return core.Version() + "-sn-9"
+	return core.Version() + "-sn-10"
 }
 
 type V2RayInstance struct {
@@ -62,6 +65,45 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 			config, err = serial.LoadJSONConfig(strings.NewReader(content))
 		}
 	}
+
+	for _, outbound := range config.Outbound {
+		if outbound.ProxySettings == nil {
+			continue
+		}
+		proxyConfig, err := commonSerial.GetInstanceOf(outbound.ProxySettings)
+		if err != nil {
+			continue
+		}
+		proxy, ok := proxyConfig.(*vmessOutbound.Config)
+		if !ok {
+			continue
+		}
+		var reset bool
+		for _, endpoint := range proxy.Receiver {
+			for _, user := range endpoint.User {
+				if user.Account == nil {
+					continue
+				}
+				accountConfig, err := commonSerial.GetInstanceOf(user.Account)
+				if err != nil {
+					continue
+				}
+				account, ok := accountConfig.(*vmess.Account)
+				if !ok {
+					continue
+				}
+				if account.AlterId > 0 {
+					account.AlterId = 0
+					user.Account = commonSerial.ToTypedMessage(account)
+					reset = true
+				}
+			}
+		}
+		if reset {
+			outbound.ProxySettings = commonSerial.ToTypedMessage(proxy)
+		}
+	}
+
 	if err != nil {
 		return err
 	}
