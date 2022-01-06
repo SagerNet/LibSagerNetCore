@@ -2,9 +2,10 @@ package libcore
 
 import (
 	"crypto/x509"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	_ "unsafe" // for go:linkname
+	_ "unsafe"
+
+	"github.com/sirupsen/logrus"
 )
 
 //go:linkname systemRoots crypto/x509.systemRoots

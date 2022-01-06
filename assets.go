@@ -10,7 +10,7 @@ import (
 
 	"github.com/sagernet/gomobile/asset"
 	"github.com/sirupsen/logrus"
-	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
+	"github.com/v2fly/v2ray-core/v5/common/platform/filesystem"
 )
 
 const (
@@ -258,7 +258,7 @@ func extractRootCACertsPem() error {
 	if err != nil {
 		return newError("write pem file")
 	}
-	return ioutil.WriteFile(sumPath, sumBytes, 0644)
+	return ioutil.WriteFile(sumPath, sumBytes, 0o644)
 }
 
 func extractAsset(assetPath string, path string) error {
