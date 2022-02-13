@@ -72,7 +72,8 @@ func (t *tcpForwarder) dispatch() (bool, error) {
 
 	go func() {
 		t.tun.handler.NewConnection(source, destination, conn)
-		t.sessions.SetWithExpire(key, session, time.Now().Add(time.Second*10))
+		time.Sleep(time.Second * 5)
+		t.sessions.Delete(key)
 	}()
 
 	return false, nil
