@@ -2,14 +2,14 @@
 
 source .github/env.sh
 
-BUILD="../libcore_build"
+BUILD="../libcore_build_debug"
 
 rm -rf $BUILD/android \
   $BUILD/java \
   $BUILD/javac-output \
   $BUILD/src
 
-gomobile bind -v -cache $(realpath $BUILD) -trimpath -tags='disable_debug' -ldflags='-s -w' . || exit 1
+gomobile bind -v -cache $(realpath $BUILD) . || exit 1
 rm -r libcore-sources.jar
 
 proj=../SagerNet/app/libs
