@@ -250,12 +250,18 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		atomic.AddInt32(&stats.tcpConn, 1)
 		atomic.AddUint32(&stats.tcpConnTotal, 1)
 		atomic.StoreInt64(&stats.deactivateAt, 0)
+		conn = statsConn{conn, &stats.uplink, &stats.downlink}
+		stats.Lock()
+		statsElement := stats.connections.PushBack(conn)
+		stats.Unlock()
 		defer func() {
 			if atomic.AddInt32(&stats.tcpConn, -1)+atomic.LoadInt32(&stats.udpConn) == 0 {
 				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 			}
+			stats.Lock()
+			stats.connections.Remove(statsElement)
+			stats.Unlock()
 		}()
-		conn = statsConn{conn, &stats.uplink, &stats.downlink}
 	}
 
 	element := v2rayNet.AddConnection(conn)
@@ -428,12 +434,18 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		atomic.AddInt32(&stats.udpConn, 1)
 		atomic.AddUint32(&stats.udpConnTotal, 1)
 		atomic.StoreInt64(&stats.deactivateAt, 0)
+		conn = statsPacketConn{conn, &stats.uplink, &stats.downlink}
+		stats.Lock()
+		statsElement := stats.connections.PushBack(conn)
+		stats.Unlock()
 		defer func() {
 			if atomic.AddInt32(&stats.udpConn, -1)+atomic.LoadInt32(&stats.tcpConn) == 0 {
 				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 			}
+			stats.Lock()
+			stats.connections.Remove(statsElement)
+			stats.Unlock()
 		}()
-		conn = statsPacketConn{conn, &stats.uplink, &stats.downlink}
 	}
 
 	element := v2rayNet.AddConnection(conn)
