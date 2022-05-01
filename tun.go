@@ -4,12 +4,7 @@ import "C"
 import (
 	"context"
 	"fmt"
-	routing_session "github.com/v2fly/v2ray-core/v5/features/routing/session"
-	"golang.org/x/sys/unix"
 	"io"
-
-	//C "github.com/sagernet/sing/common"
-	E "github.com/sagernet/sing/common/exceptions"
 	"math"
 	"net"
 	"os"
@@ -18,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	// C "github.com/sagernet/sing/common"
+	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5"
 	appOutbound "github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
@@ -27,9 +24,10 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
+	routing_session "github.com/v2fly/v2ray-core/v5/features/routing/session"
 	"github.com/v2fly/v2ray-core/v5/proxy/wireguard"
-	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"golang.org/x/sys/unix"
 	"libcore/comm"
 	"libcore/gvisor"
 	"libcore/nat"
@@ -269,11 +267,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	element := v2rayNet.AddConnection(conn)
 	defer v2rayNet.RemoveConnection(element)
 
-	link := &transport.Link{
-		Reader: &connReader{conn},
-		Writer: &connWriter{conn},
-	}
-	_ = t.v2ray.dispatcher.DispatchLink(ctx, destination, link)
+	_ = t.v2ray.dispatcher.DispatchConn(ctx, destination, conn, true)
 }
 
 type connReader struct {

@@ -9,12 +9,12 @@ require (
 	github.com/sagernet/gomobile v0.0.0-20220214172500-89df302623c8
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
-	github.com/sagernet/sing v0.0.0-20220427052500-31d4b885815e
+	github.com/sagernet/sing v0.0.0-20220501014521-091417d86d5e
 	github.com/sirupsen/logrus v1.8.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v5 v5.0.3
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
+	golang.org/x/sys v0.0.0-20220429233432-b5fbb4746d32
 	gvisor.dev/gvisor v0.0.0
 )
 
@@ -23,7 +23,9 @@ require (
 replace gvisor.dev/gvisor => github.com/sagernet/gvisor v0.0.0-20220402114650-763d12dc953e
 
 //replace github.com/v2fly/v2ray-core/v5 => ../v2ray-core
-replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.9-0.20220427092312-763235ae6c60
+replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.0-20220501015347-de08c3d853f7
+
+//replace github.com/sagernet/sing => ../sing
 
 require (
 	github.com/Dreamacro/go-shadowsocks2 v0.1.7 // indirect
@@ -59,7 +61,7 @@ require (
 	go.starlark.net v0.0.0-20220328144851-d1966c6b9fcd // indirect
 	go4.org/intern v0.0.0-20220301175310-a089fc204883 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
+	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
