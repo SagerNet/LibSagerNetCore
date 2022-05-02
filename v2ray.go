@@ -13,7 +13,6 @@ import (
 	B "github.com/sagernet/sing/common/buf"
 	M "github.com/sagernet/sing/common/metadata"
 	"github.com/v2fly/v2ray-core/v5"
-	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -41,7 +40,7 @@ func GetV2RayVersion() string {
 type V2RayInstance struct {
 	started         bool
 	core            *core.Instance
-	dispatcher      *dispatcher.DefaultDispatcher
+	dispatcher      routing.Dispatcher
 	router          routing.Router
 	outboundManager outbound.Manager
 	statsManager    stats.Manager
@@ -120,7 +119,7 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 	instance.statsManager = c.GetFeature(stats.ManagerType()).(stats.Manager)
 	instance.router = c.GetFeature(routing.RouterType()).(routing.Router)
 	instance.outboundManager = c.GetFeature(outbound.ManagerType()).(outbound.Manager)
-	instance.dispatcher = c.GetFeature(routing.DispatcherType()).(*dispatcher.DefaultDispatcher)
+	instance.dispatcher = c.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
 	instance.dnsClient = c.GetFeature(dns.ClientType()).(dns.NewClient)
 
 	o := c.GetFeature(extension.ObservatoryType())

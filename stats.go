@@ -124,8 +124,8 @@ func (t *Tun2ray) ReadAppTraffics(listener TrafficListener) error {
 	return nil
 }
 
-func NewStatsCounterConn(originConn net.Conn, uplink *uint64, downlink *uint64) *internet.StatCouterConnection {
-	conn := new(internet.StatCouterConnection)
+func NewStatsCounterConn(originConn net.Conn, uplink *uint64, downlink *uint64) *internet.StatCounterConn {
+	conn := new(internet.StatCounterConn)
 	conn.Connection = originConn
 	conn.ReadCounter = statsConnWrapper{uplink}
 	conn.WriteCounter = statsConnWrapper{downlink}
