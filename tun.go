@@ -446,10 +446,11 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			addr = nil
 		}
 		if addr, ok := addr.(*net.UDPAddr); ok {
-			_, err = writeBack(buffer, addr)
+			_, err = writeBack(buffer.Bytes(), addr)
 		} else {
-			_, err = writeBack(buffer, nil)
+			_, err = writeBack(buffer.Bytes(), nil)
 		}
+		buffer.Release()
 		if err != nil {
 			break
 		}
@@ -547,7 +548,8 @@ func (t *Tun2ray) NewPingPacket(source v2rayNet.Destination, destination v2rayNe
 				newError("failed to read ping response from ", destination.Address).Base(err).WriteToLog()
 				break
 			}
-			err = writeBack(buffer)
+			err = writeBack(buffer.Bytes())
+			buffer.Release()
 			if err != nil {
 				if err != unix.ENETUNREACH {
 					newError("failed to write ping response back").Base(err).WriteToLog()

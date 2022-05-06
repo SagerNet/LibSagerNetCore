@@ -194,7 +194,7 @@ github.com/go-openapi/spec v0.0.0-20160808142527-6aced65f8501/go.mod h1:J8+jY1nA
 github.com/go-openapi/swag v0.0.0-20160704191624-1d0bd113de87/go.mod h1:DXUve3Dpr1UfpPtxFw+EFuQ41HhCWZfha5jSVRG7C7I=
 github.com/go-playground/locales v0.14.0 h1:u50s323jtVGugKlcYeyzC0etD1HifMjqmJqb8WugfUU=
 github.com/go-playground/universal-translator v0.18.0 h1:82dyy6p4OuJq4/CByFNOn/jYrnRPArHwAcmLoJZxyho=
-github.com/go-playground/validator/v10 v10.10.1 h1:uA0+amWMiglNZKZ9FJRKUAe9U3RX91eVn1JYXMWt7ig=
+github.com/go-playground/validator/v10 v10.11.0 h1:0W+xRM511GY47Yy3bZUbJVitCNg2BOGlCyvTqsp/xIw=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 h1:p104kn46Q8WdvHunIJ9dAyjPVtrBPhSr3KT2yUst43I=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
@@ -470,8 +470,10 @@ github.com/sagernet/libping v0.1.1 h1:uNMN/02fQmRbsgJ0EuxuM/Upq8FrVP4Xj2+LlYviIO
 github.com/sagernet/libping v0.1.1/go.mod h1:FhmyYM8L32JaKI08noqoS5cK+Gw/Q+4VDnI9WvP6Sp8=
 github.com/sagernet/sagerconnect v0.1.7 h1:VWNx8NJ2C52b7Mbpty/JMiYERK/nvXyHaUkX5yFRAk4=
 github.com/sagernet/sagerconnect v0.1.7/go.mod h1:BJo2SIUnKPyS7iG1xrFBhGlneYNKURT55YbsyTlu9MU=
-github.com/sagernet/sing v0.0.0-20220504070245-9378ae739c20/go.mod h1:nUHC4EDV9bj7VGTESdnGTXI9D2RPUCtMfr9cov0LLu4=
-github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220504073605-0edc718b5178/go.mod h1:8V0DonLSdQFZZ1DXgYyemYBRmZSku86/dNDGpR49KSE=
+github.com/sagernet/sing v0.0.0-20220504232156-cc559556fc61 h1:FVkb+qg5Z1cAFAYzSpXMGiNHWoqPs2EZZPQuCQVBgYY=
+github.com/sagernet/sing v0.0.0-20220504232156-cc559556fc61/go.mod h1:y7rNFwd3gi4R3jBy9vZ/VgBWEvznQUp0HGtH5FkM30c=
+github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220506213340-167887ee9409 h1:OvsKgIfCbSqmBQgW0ZtkRj6tpqhafdrBw5EV7LXKS4A=
+github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220506213340-167887ee9409/go.mod h1:DbabkyS+tMM4aXEz+8a1pCY1l/Wdf/OSdhTr+BM0Uxw=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb h1:XfLJSPIOUX+osiMraVgIrMR27uMXnRJWGm1+GL8/63U=
 github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb/go.mod h1:bR6DqgcAl1zTcOX8/pE2Qkj9XO00eCNqmKb7lXP8EAg=

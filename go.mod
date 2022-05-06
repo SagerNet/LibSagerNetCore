@@ -9,7 +9,7 @@ require (
 	github.com/sagernet/gomobile v0.0.0-20220214172500-89df302623c8
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
-	github.com/sagernet/sing v0.0.0-20220504070245-9378ae739c20
+	github.com/sagernet/sing v0.0.0-20220504232156-cc559556fc61
 	github.com/sirupsen/logrus v1.8.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v5 v5.0.6
@@ -23,8 +23,7 @@ require (
 replace gvisor.dev/gvisor => github.com/sagernet/gvisor v0.0.0-20220402114650-763d12dc953e
 
 //replace github.com/v2fly/v2ray-core/v5 => ../v2ray-core
-
-replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220504073605-0edc718b5178
+replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220506213340-167887ee9409
 
 //replace github.com/sagernet/sing => ../sing
 

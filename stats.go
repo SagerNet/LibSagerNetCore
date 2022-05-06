@@ -157,10 +157,10 @@ type statsPacketConn struct {
 	downlink *uint64
 }
 
-func (c statsPacketConn) readFrom() (p []byte, addr net.Addr, err error) {
-	p, addr, err = c.packetConn.readFrom()
+func (c statsPacketConn) readFrom() (buffer *buf.Buffer, addr net.Addr, err error) {
+	buffer, addr, err = c.packetConn.readFrom()
 	if err == nil {
-		atomic.AddUint64(c.downlink, uint64(len(p)))
+		atomic.AddUint64(c.downlink, uint64(buffer.Len()))
 	}
 	return
 }
