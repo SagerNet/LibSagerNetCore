@@ -3,13 +3,13 @@ module libcore
 go 1.18
 
 require (
-	github.com/Dreamacro/clash v1.10.0
+	github.com/Dreamacro/clash v1.10.6
 	github.com/golang/protobuf v1.5.2
 	github.com/pion/stun v0.3.6-0.20211201014640-159901e761c9
 	github.com/sagernet/gomobile v0.0.0-20220214172500-89df302623c8
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
-	github.com/sagernet/sing v0.0.0-20220504232156-cc559556fc61
+	github.com/sagernet/sing v0.0.0-20220508121227-dd16e8fbe60f
 	github.com/sirupsen/logrus v1.8.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v5 v5.0.6
@@ -23,12 +23,12 @@ require (
 replace gvisor.dev/gvisor => github.com/sagernet/gvisor v0.0.0-20220402114650-763d12dc953e
 
 //replace github.com/v2fly/v2ray-core/v5 => ../v2ray-core
-replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220506213340-167887ee9409
+replace github.com/v2fly/v2ray-core/v5 => github.com/sagernet/v2ray-core/v5 v5.0.10-0.20220508122610-4ca39227936d
 
 //replace github.com/sagernet/sing => ../sing
 
 require (
-	github.com/Dreamacro/go-shadowsocks2 v0.1.7 // indirect
+	github.com/Dreamacro/go-shadowsocks2 v0.1.8 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
@@ -61,7 +61,7 @@ require (
 	go.starlark.net v0.0.0-20220328144851-d1966c6b9fcd // indirect
 	go4.org/intern v0.0.0-20220301175310-a089fc204883 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
-	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
+	golang.org/x/crypto v0.0.0-20220507011949-2cf3adece122 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
