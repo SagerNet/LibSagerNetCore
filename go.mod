@@ -6,7 +6,7 @@ require (
 	github.com/Dreamacro/clash v1.10.6
 	github.com/golang/protobuf v1.5.2
 	github.com/pion/stun v0.3.6-0.20211201014640-159901e761c9
-	github.com/sagernet/gomobile v0.0.0-20220214172500-89df302623c8
+	github.com/sagernet/gomobile v0.0.0-20220616115759-d86e1a4931f0
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
 	github.com/sirupsen/logrus v1.8.1
@@ -65,11 +65,10 @@ require (
 	go4.org/intern v0.0.0-20220301175310-a089fc204883 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
-	golang.org/x/tools v0.1.11-0.20220325154526-54af36eca237 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/tools v0.1.11 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20220601130007-6a08d81f6bc4 // indirect
 	google.golang.org/genproto v0.0.0-20220324131243-acbaeb5b85eb // indirect
