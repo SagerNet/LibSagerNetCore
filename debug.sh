@@ -9,7 +9,7 @@ rm -rf $BUILD/android \
   $BUILD/javac-output \
   $BUILD/src
 
-gomobile bind -v -cache $(realpath $BUILD) . || exit 1
+gomobile bind -v -cache $(realpath $BUILD) -androidapi 21 . || exit 1
 rm -r libcore-sources.jar
 
 proj=../SagerNet/app/libs
