@@ -91,7 +91,7 @@ func (e *rwEndpoint) WritePackets(pkts stack.PacketBufferList) (int, tcpip.Error
 	for pkt := pkts.Front(); pkt != nil; pkt = pkt.Next() {
 		views := pkt.Views()
 		for _, v := range views {
-			batch = rawfile.AppendIovecFromBytes(batch, v, len(views))
+			batch = rawfile.AppendIovecFromBytes(batch, v, rawfile.MaxIovs)
 		}
 	}
 	err := rawfile.NonBlockingWriteIovec(e.fd, batch)
