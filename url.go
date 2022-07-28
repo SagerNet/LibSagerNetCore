@@ -53,9 +53,6 @@ func getScheme(rawURL string) (scheme, path string, err error)
 //go:linkname parseAuthority net/url.parseAuthority
 func parseAuthority(authority string) (user *url.Userinfo, host string, err error)
 
-//go:linkname splitHostPort net/url.splitHostPort
-func splitHostPort(hostPort string) (host, port string)
-
 //go:linkname setFragment net/url.(*URL).setFragment
 func setFragment(u *url.URL, fragment string) error
 
@@ -209,8 +206,8 @@ func (u *netURL) GetHost() string {
 }
 
 func (u *netURL) SetHost(host string) {
-	_, port := splitHostPort(u.Host)
-	if port != "" {
+	_, port, err := net.SplitHostPort(u.Host)
+	if err == nil {
 		u.Host = net.JoinHostPort(host, port)
 	} else {
 		u.Host = host
@@ -227,8 +224,12 @@ func (u *netURL) GetPort() int32 {
 }
 
 func (u *netURL) SetPort(port int32) {
-	host, _ := splitHostPort(u.Host)
-	u.Host = net.JoinHostPort(host, strconv.Itoa(int(port)))
+	host, _, err := net.SplitHostPort(u.Host)
+	if err == nil {
+		u.Host = net.JoinHostPort(host, strconv.Itoa(int(port)))
+	} else {
+		u.Host = net.JoinHostPort(u.Host, strconv.Itoa(int(port)))
+	}
 }
 
 func (u *netURL) GetPath() string {
