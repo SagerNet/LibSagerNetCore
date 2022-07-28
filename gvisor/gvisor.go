@@ -31,6 +31,7 @@ type GVisor struct {
 }
 
 func (t *GVisor) Close() error {
+	t.Endpoint.Attach(nil)
 	t.Stack.Close()
 	if t.PcapFile != nil {
 		_ = t.PcapFile.Close()
