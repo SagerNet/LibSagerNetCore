@@ -6,14 +6,14 @@ require (
 	github.com/Dreamacro/clash v1.11.4
 	github.com/golang/protobuf v1.5.2
 	github.com/pion/stun v0.3.6-0.20211201014640-159901e761c9
-	github.com/sagernet/gomobile v0.0.0-20220616115759-d86e1a4931f0
+	github.com/sagernet/gomobile v0.0.0-20221130124640-349ebaa752ca
 	github.com/sagernet/libping v0.1.1
 	github.com/sagernet/sagerconnect v0.1.7
 	github.com/sirupsen/logrus v1.9.0
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v5 v5.0.7
-	golang.org/x/net v0.0.0-20220728030405-41545e8bf201
-	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
+	golang.org/x/net v0.1.0
+	golang.org/x/sys v0.1.0
 	gvisor.dev/gvisor v0.0.0
 )
 
@@ -63,11 +63,11 @@ require (
 	go.starlark.net v0.0.0-20220714194419-4cadf0a12139 // indirect
 	go4.org/intern v0.0.0-20220301175310-a089fc204883 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/mod v0.6.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
-	golang.org/x/tools v0.1.11 // indirect
+	golang.org/x/tools v0.2.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20220703234212-c31a7b1ab478 // indirect
 	google.golang.org/genproto v0.0.0-20220324131243-acbaeb5b85eb // indirect

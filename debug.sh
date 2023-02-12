@@ -7,7 +7,7 @@ BUILD="../libcore_build_debug"
 rm -rf $BUILD/android \
   $BUILD/java \
   $BUILD/javac-output \
-  $BUILD/src
+  $BUILD/src*
 
 gomobile bind -v -cache $(realpath $BUILD) -androidapi 21 . || exit 1
 rm -r libcore-sources.jar
