@@ -12,8 +12,8 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/ulikunitz/xz v0.5.10
 	github.com/v2fly/v2ray-core/v5 v5.0.7
-	golang.org/x/net v0.1.0
-	golang.org/x/sys v0.1.0
+	golang.org/x/net v0.7.0
+	golang.org/x/sys v0.5.0
 	gvisor.dev/gvisor v0.0.0
 )
 
@@ -65,7 +65,7 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20211104114900-415007cec224 // indirect
