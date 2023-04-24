@@ -53,7 +53,7 @@ var (
 
 func Test(addrStr string, socksPort int) (natMapping int, natFiltering int, err error) {
 	if addrStr == "" {
-		addrStr = "stun.voip.blackberry.com:3478"
+		addrStr = "stun.syncthing.net:3478"
 	}
 	var mapTestConn *stunServerConn
 	newConn := func() error {
